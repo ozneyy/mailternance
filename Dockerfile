@@ -14,8 +14,8 @@ COPY main.go ./
 COPY backend/ ./backend/
 COPY web/ ./web/
 
-# Compiler un binaire statique pour Linux (pas de CGO)
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+# Compiler un binaire statique pour Linux (pas de CGO, architecture automatique)
+RUN CGO_ENABLED=0 GOOS=linux \
     go build -ldflags="-w -s" -o mailternance main.go
 
 # ─────────────────────────────────────────────
