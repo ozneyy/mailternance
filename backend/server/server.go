@@ -194,7 +194,7 @@ func startAutoSend(intervalSecs int, templateID string, skipAlreadySent bool, sc
 		if len(schedule) > 0 {
 			log.Printf("[INFO] Auto-send planifié démarré. Créneaux : %d, TemplateID : %s, SkipAlreadySent : %t", len(schedule), templateID, skipAlreadySent)
 		} else {
-			log.Printf("[INFO] Auto-send de campagnes démarré (intervalle). Intervalle : %d secondes, TemplateID : %s", intervalSecs, templateID)
+			log.Printf("[INFO] Auto-send démarré mais aucun créneau hebdomadaire configuré. Il restera inactif.")
 		}
 
 		for {
@@ -204,11 +204,13 @@ func startAutoSend(intervalSecs int, templateID string, skipAlreadySent bool, sc
 				currentSchedule := autoSendSchedule
 				autoSendMutex.Unlock()
 
-				// Si des créneaux sont définis, n'envoyer que si l'heure correspond
-				if len(currentSchedule) > 0 {
-					if !matchesSchedule(currentSchedule) {
-						continue
-					}
+				// Si aucun créneau n'est configuré, on ne fait rien (sécurité anti-boucle)
+				if len(currentSchedule) == 0 {
+					continue
+				}
+
+				if !matchesSchedule(currentSchedule) {
+					continue
 				}
 
 				sendMutex.Lock()
