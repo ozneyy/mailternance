@@ -838,6 +838,10 @@
                                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                                     <h3 style="margin: 0; font-size: 16px; color: var(--el-text-color-primary);">Éditeur de Destinataires (CSV)</h3>
                                     <div style="display: flex; gap: 12px;">
+                                        <el-button type="info" plain @click="importDialogVisible = true">
+                                            <el-icon style="margin-right: 4px;"><Upload /></el-icon>
+                                            Importer une liste
+                                        </el-button>
                                         <el-button type="success" @click="handleAddRecipientRow">
                                             <el-icon style="margin-right: 4px;"><Plus /></el-icon>
                                             Ajouter un contact
@@ -1176,6 +1180,34 @@
                 <el-button type="primary" @click="showVariablesHelp = false">Compris</el-button>
             </template>
         </el-dialog>
+        
+        <!-- Dialog for Import Recipients List -->
+        <el-dialog
+            v-model="importDialogVisible"
+            title="Importer une liste d'adresses e-mail"
+            width="500px"
+        >
+            <div style="padding: 10px 0;">
+                <div style="font-size: 13px; color: var(--el-text-color-regular); margin-bottom: 12px; line-height: 1.4;">
+                    Collez ici votre liste d'e-mails (séparés par un retour à la ligne, une virgule ou un point-virgule).
+                    Les adresses e-mail valides seront automatiquement détectées et ajoutées au tableau.
+                </div>
+                <el-input
+                    v-model="importTextarea"
+                    type="textarea"
+                    :rows="8"
+                    placeholder="exemple1@domaine.com&#10;exemple2@domaine.com, exemple3@domaine.com; exemple4@domaine.com"
+                />
+            </div>
+            <template #footer>
+                <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <el-button @click="importDialogVisible = false">Annuler</el-button>
+                    <el-button type="primary" @click="processImport">
+                        <el-icon style="margin-right: 4px;"><Upload /></el-icon> Importer
+                    </el-button>
+                </div>
+            </template>
+        </el-dialog>
 
     </div>
 
@@ -1367,6 +1399,52 @@
                 // Recipients CSV Editor state & methods
                 const editableCandidates = ref(JSON.parse(JSON.stringify(candidates.value)));
                 const isSavingCSV = ref(false);
+                const importDialogVisible = ref(false);
+                const importTextarea = ref('');
+
+                const processImport = () => {
+                    const text = importTextarea.value || '';
+                    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+                    const matches = text.match(emailRegex) || [];
+                    
+                    if (matches.length === 0) {
+                        ElementPlus.ElNotification({
+                            title: 'Aucun e-mail trouvé',
+                            message: 'Aucune adresse e-mail valide n\'a été détectée dans le texte fourni.',
+                            type: 'warning',
+                            duration: 3000
+                        });
+                        return;
+                    }
+                    
+                    const existingEmails = new Set(editableCandidates.value.map(c => c.Email.toLowerCase().trim()));
+                    let importedCount = 0;
+                    
+                    matches.forEach(email => {
+                        const cleanedEmail = email.trim();
+                        if (!existingEmails.has(cleanedEmail.toLowerCase())) {
+                            editableCandidates.value.push({
+                                Email: cleanedEmail,
+                                FirstName: '',
+                                LastName: '',
+                                Company: '',
+                                Position: ''
+                            });
+                            existingEmails.add(cleanedEmail.toLowerCase());
+                            importedCount++;
+                        }
+                    });
+                    
+                    importDialogVisible.value = false;
+                    importTextarea.value = '';
+                    
+                    ElementPlus.ElNotification({
+                        title: 'Importation réussie',
+                        message: `${importedCount} nouvelle(s) adresse(s) e-mail ajoutée(s) au tableau (${matches.length - importedCount} doublons ignorés).`,
+                        type: 'success',
+                        duration: 4000
+                    });
+                };
 
                 const handleAddRecipientRow = () => {
                     editableCandidates.value.push({
@@ -2295,6 +2373,9 @@
                     startSendCampaign,
                     editableCandidates,
                     isSavingCSV,
+                    importDialogVisible,
+                    importTextarea,
+                    processImport,
                     handleAddRecipientRow,
                     handleRemoveRecipientRow,
                     handleSaveCSV,
