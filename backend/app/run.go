@@ -27,12 +27,8 @@ func Run() {
 	webMode := flag.Bool("web", false, "Démarrer le serveur web de suivi (dashboard)")
 	flag.Parse()
 
-	// 2. Charger le fichier .env depuis le dossier de données si défini
-	dataDir := os.Getenv("DATA_DIR")
-	if dataDir == "" {
-		dataDir = "."
-	}
-	config.LoadEnv(filepath.Join(dataDir, ".env"))
+	// 2. Charger le fichier .env
+	config.LoadEnv(".env")
 
 	// 3. Charger la configuration globale initiale
 	cfg, err := config.LoadConfig()

@@ -1080,12 +1080,7 @@ func handleSync(w http.ResponseWriter, r *http.Request) {
 
 // writeEnvFile écrit un nouveau fichier .env propre
 func writeEnvFile(vars templates.EnvData) error {
-	dataDir := os.Getenv("DATA_DIR")
-	if dataDir == "" {
-		dataDir = "."
-	}
-	envPath := filepath.Join(dataDir, ".env")
-	file, err := os.Create(envPath)
+	file, err := os.Create(".env")
 	if err != nil {
 		return err
 	}
