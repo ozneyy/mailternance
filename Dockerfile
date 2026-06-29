@@ -36,13 +36,8 @@ COPY --from=builder /build/mailternance .
 # Copier les assets statiques
 COPY web/ ./web/
 
-# Créer les dossiers et fichiers de données persistants
-# (ils seront montés en volume en production)
-RUN mkdir -p web/attachments logs && \
-    echo "[]" > sent_history.json && \
-    echo "[]" > replies.json && \
-    echo '{"subject":"","portfolioUrl":"","links":[]}' > settings.json && \
-    echo "[]" > templates.json
+# Créer les dossiers de données persistants
+RUN mkdir -p web/attachments logs data
 
 # Le .env et recipients.csv sont fournis via volume ou variables d'env
 # Port exposé (correspondra à PORT dans .env)

@@ -15,15 +15,8 @@ services:
     volumes:
       # Credentials Gmail 
       - ./.env:/app/.env:ro
-      # Liste des destinataires (lue et écrite par l'app)
-      - ./recipients.csv:/app/recipients.csv
-      # Données persistantes (historique, réponses, modèles, paramètres)
-      - ./sent_history.json:/app/sent_history.json
-      - ./replies.json:/app/replies.json
-      - ./settings.json:/app/settings.json
-      - ./templates.json:/app/templates.json
-      - ./autosync.json:/app/autosync.json
-      - ./autosend.json:/app/autosend.json
+      # Dossier de données persistantes (historique, réponses, modèles, paramètres, destinataires)
+      - ./data:/app/data
       # Pièces jointes (CV, etc.)
       - ./web/attachments:/app/web/attachments
       # Logs de l'application
@@ -32,6 +25,9 @@ services:
     environment:
       # Forcer le port web sur 17890
       - PORT=17890
+      # Indiquer à l'application d'utiliser le dossier de données monté
+      - DATA_DIR=data
+      - CSV_PATH=data/recipients.csv
       # Les autres variables sont lues depuis le fichier .env monté
 
     # Healthcheck : vérifie que le dashboard répond

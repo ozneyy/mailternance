@@ -258,7 +258,7 @@ func getDashboardData(cfg templates.Config) ([]templates.DashboardItem, []templa
 	}
 
 	// Charger les réponses synchronisées
-	replies, err := storage.LoadReplies("replies.json")
+	replies, err := storage.LoadReplies()
 	if err != nil {
 		replies = []templates.Reply{}
 	}
@@ -851,7 +851,7 @@ func handleDeleteCandidate(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[INFO] %d envoi(s) restant(s) dans l'historique", len(updatedSentHistory))
 
 	// 3. Supprimer de replies.json
-	replies, err := storage.LoadReplies("replies.json")
+	replies, err := storage.LoadReplies()
 	if err == nil {
 		updatedReplies := make([]templates.Reply, 0)
 		for _, rep := range replies {
@@ -859,7 +859,7 @@ func handleDeleteCandidate(w http.ResponseWriter, r *http.Request) {
 				updatedReplies = append(updatedReplies, rep)
 			}
 		}
-		_ = storage.SaveReplies("replies.json", updatedReplies)
+		_ = storage.SaveReplies(updatedReplies)
 		log.Printf("[INFO] %d réponse(s) restante(s)", len(updatedReplies))
 	}
 

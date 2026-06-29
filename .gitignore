@@ -9,10 +9,7 @@
 # --- Données / Runtime ---
 *.log
 mailternance
-sent_history.json
-replies.json
-recipients.csv
-settings.json
+data/
 web/attachments/
 
 # --- Go Build Artifacts ---

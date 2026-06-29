@@ -33,7 +33,25 @@ func LoadRecipients(path string) ([]map[string]string, error) {
 
 	file, err := os.Open(absPath)
 	if err != nil {
-		return nil, fmt.Errorf("erreur lors de l'ouverture du fichier %s : %w", absPath, err)
+		if os.IsNotExist(err) {
+			// Créer le dossier parent si besoin
+			dir := filepath.Dir(absPath)
+			_ = os.MkdirAll(dir, 0755)
+
+			// Créer le fichier avec les en-têtes par défaut
+			newFile, errCreate := os.Create(absPath)
+			if errCreate == nil {
+				writer := csv.NewWriter(newFile)
+				_ = writer.Write([]string{"email", "first_name", "last_name", "company", "position"})
+				writer.Flush()
+				newFile.Close()
+			}
+			// Tenter d'ouvrir le fichier à nouveau
+			file, err = os.Open(absPath)
+		}
+		if err != nil {
+			return nil, fmt.Errorf("erreur lors de l'ouverture du fichier %s : %w", absPath, err)
+		}
 	}
 	defer file.Close()
 

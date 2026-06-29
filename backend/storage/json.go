@@ -15,7 +15,7 @@ func LoadSettings(cfg templates.Config) templates.Settings {
 	s.PortfolioURL = "https://portfolio.example.com"
 	s.Links = []templates.Link{}
 
-	file, err := os.Open("settings.json")
+	file, err := os.Open(GetStoragePath("settings.json"))
 	if err == nil {
 		defer file.Close()
 		json.NewDecoder(file).Decode(&s)
@@ -34,7 +34,7 @@ func LoadSettings(cfg templates.Config) templates.Settings {
 
 // SaveSettings enregistre les paramètres dans settings.json
 func SaveSettings(s templates.Settings) error {
-	file, err := os.Create("settings.json")
+	file, err := os.Create(GetStoragePath("settings.json"))
 	if err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func SaveSettings(s templates.Settings) error {
 // LoadTemplates charge les modèles depuis templates.json ou crée les modèles par défaut
 func LoadTemplates() []templates.EmailTemplate {
 	var list []templates.EmailTemplate
-	file, err := os.Open("backend/templates/templates.json")
+	file, err := os.Open(GetStoragePath("templates.json"))
 	if err == nil {
 		defer file.Close()
 		json.NewDecoder(file).Decode(&list)
@@ -95,7 +95,7 @@ func LoadTemplates() []templates.EmailTemplate {
 
 // SaveTemplates enregistre les modèles dans templates.json
 func SaveTemplates(list []templates.EmailTemplate) error {
-	file, err := os.Create("backend/templates/templates.json")
+	file, err := os.Create(GetStoragePath("templates.json"))
 	if err != nil {
 		return err
 	}
@@ -157,7 +157,7 @@ func LoadAutoSync() templates.AutoSyncConfig {
 	c.Enabled = false
 	c.Interval = 300 // 5 minutes par défaut (300 secondes)
 
-	file, err := os.Open("autosync.json")
+	file, err := os.Open(GetStoragePath("autosync.json"))
 	if err == nil {
 		defer file.Close()
 		json.NewDecoder(file).Decode(&c)
@@ -167,7 +167,7 @@ func LoadAutoSync() templates.AutoSyncConfig {
 
 // SaveAutoSync enregistre la configuration de synchronisation automatique
 func SaveAutoSync(c templates.AutoSyncConfig) error {
-	file, err := os.Create("autosync.json")
+	file, err := os.Create(GetStoragePath("autosync.json"))
 	if err != nil {
 		return err
 	}
@@ -185,7 +185,7 @@ func LoadAutoSend() templates.AutoSendConfig {
 	c.TemplateID = ""
 	c.SkipAlreadySent = true
 
-	file, err := os.Open("autosend.json")
+	file, err := os.Open(GetStoragePath("autosend.json"))
 	if err == nil {
 		defer file.Close()
 		json.NewDecoder(file).Decode(&c)
@@ -195,7 +195,7 @@ func LoadAutoSend() templates.AutoSendConfig {
 
 // SaveAutoSend enregistre la configuration d'envoi automatique
 func SaveAutoSend(c templates.AutoSendConfig) error {
-	file, err := os.Create("autosend.json")
+	file, err := os.Create(GetStoragePath("autosend.json"))
 	if err != nil {
 		return err
 	}

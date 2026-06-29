@@ -16,7 +16,7 @@ func LoadSentHistory() []templates.SentRecord {
 	defer sentHistoryMutex.Unlock()
 
 	var history []templates.SentRecord
-	file, err := os.Open("sent_history.json")
+	file, err := os.Open(GetStoragePath("sent_history.json"))
 	if err == nil {
 		defer file.Close()
 		json.NewDecoder(file).Decode(&history)
@@ -33,7 +33,7 @@ func SaveSentRecord(rec templates.SentRecord) error {
 	defer sentHistoryMutex.Unlock()
 
 	var history []templates.SentRecord
-	file, err := os.Open("sent_history.json")
+	file, err := os.Open(GetStoragePath("sent_history.json"))
 	if err == nil {
 		json.NewDecoder(file).Decode(&history)
 		file.Close()
@@ -43,7 +43,7 @@ func SaveSentRecord(rec templates.SentRecord) error {
 	}
 	history = append(history, rec)
 
-	file, err = os.Create("sent_history.json")
+	file, err = os.Create(GetStoragePath("sent_history.json"))
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func OverwriteSentHistory(history []templates.SentRecord) error {
 	sentHistoryMutex.Lock()
 	defer sentHistoryMutex.Unlock()
 
-	file, err := os.Create("sent_history.json")
+	file, err := os.Create(GetStoragePath("sent_history.json"))
 	if err != nil {
 		return err
 	}
@@ -69,8 +69,8 @@ func OverwriteSentHistory(history []templates.SentRecord) error {
 }
 
 // LoadReplies charge les réponses existantes ou retourne un tableau vide si le fichier n'existe pas
-func LoadReplies(filename string) ([]templates.Reply, error) {
-	file, err := os.Open(filename)
+func LoadReplies() ([]templates.Reply, error) {
+	file, err := os.Open(GetStoragePath("replies.json"))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []templates.Reply{}, nil
@@ -91,8 +91,8 @@ func LoadReplies(filename string) ([]templates.Reply, error) {
 }
 
 // SaveReplies enregistre la liste des réponses
-func SaveReplies(filename string, replies []templates.Reply) error {
-	file, err := os.Create(filename)
+func SaveReplies(replies []templates.Reply) error {
+	file, err := os.Create(GetStoragePath("replies.json"))
 	if err != nil {
 		return err
 	}

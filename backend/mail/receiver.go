@@ -36,7 +36,7 @@ func SyncReplies(cfg templates.Config) (int, error) {
 	}
 	log.Printf("[INFO] %d destinataires uniques à surveiller", len(recipientsMap))
 
-	replies, err := storage.LoadReplies("replies.json")
+	replies, err := storage.LoadReplies()
 	if err != nil {
 		log.Printf("[WARNING] Impossible de charger replies.json : %v", err)
 		replies = []templates.Reply{}
@@ -210,11 +210,11 @@ func SyncReplies(cfg templates.Config) (int, error) {
 	log.Printf("[INFO] %d message(s) analysé(s) provenant des destinataires, %d nouvelle(s) réponse(s)", analyzedCount, newRepliesCount)
 
 	if newRepliesCount > 0 {
-		err = storage.SaveReplies("replies.json", replies)
+		err = storage.SaveReplies(replies)
 		if err != nil {
 			return 0, fmt.Errorf("erreur d'écriture replies.json : %w", err)
 		}
-		log.Printf("[SUCCESS] %d nouvelle(s) réponse(s) sauvegardée(s) dans replies.json", newRepliesCount)
+		log.Printf("[SUCCESS] %d nouvelle(s) réponse(s) sauvegardée(s)", newRepliesCount)
 	}
 
 	return newRepliesCount, nil
