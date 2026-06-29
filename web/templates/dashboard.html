@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css" />
     <link rel="stylesheet" href="https://unpkg.com/element-plus/theme-chalk/dark/css-vars.css" />
     <link rel="stylesheet" href="/static/css/style.css" />
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
 </head>
 
 <body>
@@ -191,8 +192,7 @@
                                 <el-table-column label="Statut" width="130">
                                     <template #default="scope">
                                         <el-tag :type="scope.row.HasReply ? 'success' : 'warning'" round effect="flat">
-                                            {[ scope.row.HasReply ? (scope.row.ReplyCount > 1 ? scope.row.ReplyCount + '
-                                            réponses' : 'Réponse reçue') : 'En attente' ]}
+                                            {[ scope.row.HasReply ? (scope.row.ReplyCount > 1 ? scope.row.ReplyCount + ' réponses' : 'Réponse reçue') : 'En attente' ]}
                                         </el-tag>
                                     </template>
                                 </el-table-column>
@@ -636,7 +636,7 @@
                                                                 step="00:15" end="23:45" placeholder="HH:mm"
                                                                 :disabled="!autoSendEnabled" size="small"
                                                                 :clearable="false"
-                                                                style="width: 110px; margin-left: auto;" />
+                                                                style="width: 110px; margin-left: auto;"></el-time-select>
                                                             <span v-else
                                                                 style="margin-left: auto; font-size: 11px; color: var(--el-text-color-placeholder);">—</span>
                                                         </div>
@@ -1060,8 +1060,7 @@
                                 <div v-if="event.body && event.body.length > 140" style="margin-top: 8px;">
                                     <el-button size="small" type="primary" text
                                         @click="toggleReplyBody(event.replyIndex)">
-                                        {[ expandedReplies[event.replyIndex] ? 'Masquer le message complet' : 'Voir le
-                                        message complet' ]}
+                                        {[ expandedReplies[event.replyIndex] ? 'Masquer le message complet' : 'Voir le message complet' ]}
                                     </el-button>
                                     <div v-if="expandedReplies[event.replyIndex]"
                                         style="margin-top: 10px; padding: 12px; background: var(--el-bg-color-page); border-radius: 6px; max-height: 400px; overflow: auto;">
