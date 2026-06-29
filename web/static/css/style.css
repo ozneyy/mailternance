@@ -15,6 +15,7 @@ body {
     height: 100vh;
 }
 
+/* ─── Sidebar ──────────────────────────────────────────────── */
 .aside-menu {
     height: 100%;
     display: flex;
@@ -51,6 +52,7 @@ body {
     gap: 10px;
 }
 
+/* ─── Header ───────────────────────────────────────────────── */
 .header-bar {
     background-color: var(--el-bg-color);
     border-bottom: 1px solid var(--el-border-color-light);
@@ -66,6 +68,7 @@ body {
     margin: 0;
 }
 
+/* ─── Main Workspace ───────────────────────────────────────── */
 .main-workspace {
     padding: 24px;
     overflow-y: auto;
@@ -75,6 +78,7 @@ body {
     background-color: var(--el-bg-color-page);
 }
 
+/* ─── Stats ────────────────────────────────────────────────── */
 .stats-row {
     margin-bottom: 8px;
 }
@@ -97,12 +101,14 @@ body {
     background-color: var(--el-fill-color-light);
 }
 
+/* ─── Table ────────────────────────────────────────────────── */
 .table-toolbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
     gap: 16px;
+    flex-wrap: wrap;
 }
 
 .candidate-cell {
@@ -135,6 +141,7 @@ body {
     max-width: 350px;
 }
 
+/* ─── Drawer ───────────────────────────────────────────────── */
 .drawer-content {
     display: flex;
     flex-direction: column;
@@ -158,12 +165,13 @@ body {
     margin-top: 8px;
 }
 
+/* ─── Config Card (base) ───────────────────────────────────── */
 .config-card {
     background-color: var(--el-bg-color) !important;
     border: 1px solid var(--el-border-color-light) !important;
-    margin-bottom: 20px;
 }
 
+/* ─── Terminal ─────────────────────────────────────────────── */
 .terminal-box {
     border: 1px solid var(--el-border-color-light);
     border-radius: var(--el-border-radius-base);
@@ -172,4 +180,242 @@ body {
     text-align: left;
     margin-top: 16px;
     font-family: var(--el-font-family-monospace, Courier, monospace);
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/* ─── SETTINGS RESPONSIVE LAYOUT ──────────────────────────── */
+/* ═══════════════════════════════════════════════════════════ */
+
+/* Grid de base pour les deux vues settings */
+.settings-grid {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+}
+
+/* Colonne qui occupe toute la largeur */
+.settings-grid .settings-col-full {
+    grid-column: 1 / -1;
+}
+
+/* Colonne large (environ 55%) */
+.settings-grid .settings-col-main {
+    grid-column: 1 / 2;
+}
+
+/* Colonne secondaire (environ 45%) */
+.settings-grid .settings-col-side {
+    grid-column: 2 / 3;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ─── Section Category Header ──────────────────────────────── */
+.settings-section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.settings-section-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.settings-section-badge.badge-template {
+    background-color: rgba(64, 158, 255, 0.12);
+    color: var(--el-color-primary);
+    border: 1px solid rgba(64, 158, 255, 0.25);
+}
+
+.settings-section-badge.badge-attachments {
+    background-color: rgba(103, 194, 58, 0.12);
+    color: var(--el-color-success);
+    border: 1px solid rgba(103, 194, 58, 0.25);
+}
+
+.settings-section-badge.badge-links {
+    background-color: rgba(230, 162, 60, 0.12);
+    color: var(--el-color-warning);
+    border: 1px solid rgba(230, 162, 60, 0.25);
+}
+
+.settings-section-badge.badge-env {
+    background-color: rgba(245, 108, 108, 0.12);
+    color: var(--el-color-danger);
+    border: 1px solid rgba(245, 108, 108, 0.25);
+}
+
+.settings-section-badge.badge-sync {
+    background-color: rgba(144, 147, 153, 0.12);
+    color: var(--el-text-color-secondary);
+    border: 1px solid rgba(144, 147, 153, 0.25);
+}
+
+/* ─── Section Card styling ─────────────────────────────────── */
+.settings-card {
+    background-color: var(--el-bg-color) !important;
+    border: 1px solid var(--el-border-color-light) !important;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.settings-card .el-card__header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--el-border-color-extra-light);
+    background-color: var(--el-fill-color-extra-light);
+}
+
+.settings-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.settings-card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+    margin: 0;
+}
+
+.settings-card .el-card__body {
+    padding: 18px;
+}
+
+/* ─── Section Divider ──────────────────────────────────────── */
+.settings-section-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 6px 0 14px 0;
+}
+
+.settings-section-divider-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--el-text-color-placeholder);
+    white-space: nowrap;
+}
+
+.settings-section-divider-line {
+    flex: 1;
+    height: 1px;
+    background-color: var(--el-border-color-extra-light);
+}
+
+/* ─── ENV form grid ────────────────────────────────────────── */
+.env-form-grid {
+    display: grid;
+    gap: 0 20px;
+    grid-template-columns: 1fr 1fr;
+}
+
+.env-form-grid .env-form-col-full {
+    grid-column: 1 / -1;
+}
+
+/* ─── Link form row ────────────────────────────────────────── */
+.link-add-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 10px;
+    align-items: start;
+}
+
+/* ─── Responsive breakpoints ────────────────────────────────── */
+@media (max-width: 1200px) {
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+    .settings-grid .settings-col-main,
+    .settings-grid .settings-col-side {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 900px) {
+    .env-form-grid {
+        grid-template-columns: 1fr;
+    }
+    .env-form-grid .env-form-col-full {
+        grid-column: 1 / -1;
+    }
+    .link-add-grid {
+        grid-template-columns: 1fr;
+    }
+    .main-workspace {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 600px) {
+    .table-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .main-workspace {
+        padding: 12px;
+    }
+}
+
+/* ─── Schedule Grid ────────────────────────────────────────── */
+.schedule-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid var(--el-border-color-light);
+    border-radius: 8px;
+    padding: 8px;
+    background-color: var(--el-fill-color-extra-light);
+    transition: opacity 0.2s;
+}
+
+.schedule-grid.schedule-disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.schedule-day-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: background-color 0.15s;
+}
+
+.schedule-day-row:hover {
+    background-color: var(--el-fill-color-light);
+}
+
+.schedule-day-row.schedule-day-active {
+    background-color: rgba(230, 162, 60, 0.08);
+    border: 1px solid rgba(230, 162, 60, 0.2);
+}
+
+.schedule-day-label {
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 85px;
+    color: var(--el-text-color-primary);
 }

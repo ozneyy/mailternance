@@ -37,6 +37,14 @@ var (
 	autoSyncEnabled  bool
 	autoSyncInterval int // in seconds
 	autoSyncStopChan chan struct{}
+
+	autoSendMutex           sync.Mutex
+	autoSendEnabled         bool
+	autoSendInterval        int // in seconds (legacy)
+	autoSendTemplate        string
+	autoSendSkipAlreadySent bool
+	autoSendStopChan        chan struct{}
+	autoSendSchedule        []templates.ScheduleSlot
 )
 
 // responseWriter wrapper pour capturer le status code HTTP
@@ -122,6 +130,122 @@ func stopAutoSync() {
 	if autoSyncStopChan != nil {
 		close(autoSyncStopChan)
 		autoSyncStopChan = nil
+	}
+}
+
+// InitializeAutoSend charge la configuration persistée et lance le daemon d'envoi automatique si activé
+func InitializeAutoSend() {
+	c := storage.LoadAutoSend()
+	if c.Enabled {
+		startAutoSend(c.Interval, c.TemplateID, c.SkipAlreadySent, c.Schedule)
+	} else {
+		autoSendMutex.Lock()
+		autoSendEnabled = false
+		autoSendInterval = c.Interval
+		autoSendTemplate = c.TemplateID
+		autoSendSkipAlreadySent = c.SkipAlreadySent
+		autoSendSchedule = c.Schedule
+		autoSendMutex.Unlock()
+	}
+}
+
+func startAutoSend(intervalSecs int, templateID string, skipAlreadySent bool, schedule []templates.ScheduleSlot) {
+	autoSendMutex.Lock()
+	defer autoSendMutex.Unlock()
+
+	if autoSendStopChan != nil {
+		close(autoSendStopChan)
+		autoSendStopChan = nil
+	}
+
+	autoSendEnabled = true
+	autoSendInterval = intervalSecs
+	autoSendTemplate = templateID
+	autoSendSkipAlreadySent = skipAlreadySent
+	autoSendSchedule = schedule
+	autoSendStopChan = make(chan struct{})
+
+	stopChan := autoSendStopChan
+
+	// dayName convertit time.Weekday en nom anglais minuscule
+	dayName := func(d time.Weekday) string {
+		return strings.ToLower(d.String())
+	}
+
+	// matchesSchedule vérifie si l'heure actuelle correspond à un créneau configuré
+	// On vérifie à la minute près.
+	matchesSchedule := func(slots []templates.ScheduleSlot) bool {
+		now := time.Now()
+		currentDay := dayName(now.Weekday())
+		currentHHMM := now.Format("15:04")
+		for _, slot := range slots {
+			if strings.ToLower(slot.Day) == currentDay && slot.Time == currentHHMM {
+				return true
+			}
+		}
+		return false
+	}
+
+	go func() {
+		// Tick toutes les minutes pour vérifier les créneaux
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+
+		if len(schedule) > 0 {
+			log.Printf("[INFO] Auto-send planifié démarré. Créneaux : %d, TemplateID : %s, SkipAlreadySent : %t", len(schedule), templateID, skipAlreadySent)
+		} else {
+			log.Printf("[INFO] Auto-send de campagnes démarré (intervalle). Intervalle : %d secondes, TemplateID : %s", intervalSecs, templateID)
+		}
+
+		for {
+			select {
+			case <-ticker.C:
+				autoSendMutex.Lock()
+				currentSchedule := autoSendSchedule
+				autoSendMutex.Unlock()
+
+				// Si des créneaux sont définis, n'envoyer que si l'heure correspond
+				if len(currentSchedule) > 0 {
+					if !matchesSchedule(currentSchedule) {
+						continue
+					}
+				}
+
+				sendMutex.Lock()
+				inProg := sendInProgress
+				sendMutex.Unlock()
+
+				if inProg {
+					log.Println("[INFO] Auto-send en attente : une campagne est déjà en cours d'envoi")
+					continue
+				}
+
+				log.Println("[INFO] Lancement de l'auto-send de campagne...")
+				sendMutex.Lock()
+				sendInProgress = true
+				sendMutex.Unlock()
+
+				autoSendMutex.Lock()
+				skip := autoSendSkipAlreadySent
+				autoSendMutex.Unlock()
+
+				runCampaignBackground(templateID, skip)
+			case <-stopChan:
+				log.Println("[INFO] Auto-send de campagnes arrêté")
+				return
+			}
+		}
+	}()
+}
+
+func stopAutoSend() {
+	autoSendMutex.Lock()
+	defer autoSendMutex.Unlock()
+
+	autoSendEnabled = false
+	if autoSendStopChan != nil {
+		close(autoSendStopChan)
+		autoSendStopChan = nil
 	}
 }
 
@@ -212,6 +336,7 @@ func getDashboardData(cfg templates.Config) ([]templates.DashboardItem, []templa
 // RunWebServer lance le serveur web HTTP
 func RunWebServer() {
 	InitializeAutoSync()
+	InitializeAutoSend()
 	cfg := config.GetActiveConfig()
 	log.Printf("[INFO] Mode Serveur Web : Lancement sur http://0.0.0.0:%s", cfg.Port)
 	log.Printf("[INFO] Chargement des données...")
@@ -250,6 +375,8 @@ func RunWebServer() {
 	http.HandleFunc("/api/candidates", handleAPICandidates)
 	http.HandleFunc("/api/replies", handleAPIReplies)
 	http.HandleFunc("/api/auto-sync", handleAPIAutoSync)
+	http.HandleFunc("/api/auto-send", handleAPIAutoSend)
+	http.HandleFunc("/api/server-time", handleAPIServerTime)
 
 	// Route pour les fichiers statiques (ex: /static/css/style.css)
 	http.Handle("/static/", logRequest(http.StripPrefix("/static/", http.FileServer(http.Dir("web/static")))))
@@ -446,6 +573,101 @@ func handleAPIAutoSync(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Error(w, "Méthode non autorisée", http.StatusMethodNotAllowed)
+}
+
+func handleAPIAutoSend(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method == http.MethodGet {
+		autoSendMutex.Lock()
+		enabled := autoSendEnabled
+		interval := autoSendInterval
+		templateId := autoSendTemplate
+		skipAlreadySent := autoSendSkipAlreadySent
+		schedule := autoSendSchedule
+		autoSendMutex.Unlock()
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":          "success",
+			"enabled":         enabled,
+			"interval":        interval,
+			"templateId":      templateId,
+			"skipAlreadySent": skipAlreadySent,
+			"schedule":        schedule,
+		})
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		var req struct {
+			Enabled         bool                     `json:"enabled"`
+			Interval        int                      `json:"interval"` // legacy en minutes
+			TemplateID      string                   `json:"templateId"`
+			SkipAlreadySent bool                     `json:"skipAlreadySent"`
+			Schedule        []templates.ScheduleSlot `json:"schedule"`
+		}
+
+		err := json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{"status": "error", "message": err.Error()})
+			return
+		}
+
+		intervalSecs := req.Interval * 60
+		if intervalSecs <= 0 {
+			intervalSecs = 3600
+		}
+
+		err = storage.SaveAutoSend(templates.AutoSendConfig{
+			Enabled:         req.Enabled,
+			Interval:        intervalSecs,
+			TemplateID:      req.TemplateID,
+			SkipAlreadySent: req.SkipAlreadySent,
+			Schedule:        req.Schedule,
+		})
+		if err != nil {
+			log.Printf("[ERROR] Échec de sauvegarde de la configuration auto-send : %v", err)
+		}
+
+		if req.Enabled {
+			startAutoSend(intervalSecs, req.TemplateID, req.SkipAlreadySent, req.Schedule)
+		} else {
+			stopAutoSend()
+		}
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":          "success",
+			"enabled":         req.Enabled,
+			"interval":        intervalSecs,
+			"templateId":      req.TemplateID,
+			"skipAlreadySent": req.SkipAlreadySent,
+			"schedule":        req.Schedule,
+		})
+		return
+	}
+
+	http.Error(w, "Méthode non autorisée", http.StatusMethodNotAllowed)
+}
+
+// handleAPIServerTime retourne l'heure courante du serveur avec sa timezone
+func handleAPIServerTime(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if r.Method != http.MethodGet {
+		http.Error(w, "Méthode non autorisée", http.StatusMethodNotAllowed)
+		return
+	}
+	now := time.Now()
+	zone, offset := now.Zone()
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":     "success",
+		"time":       now.Format("15:04:05"),
+		"date":       now.Format("02/01/2006"),
+		"day":        strings.ToLower(now.Weekday().String()),
+		"timezone":   zone,
+		"utcOffset":  offset / 3600,
+		"rfc3339":    now.Format(time.RFC3339),
+	})
 }
 
 
@@ -722,7 +944,7 @@ func handleSend(w http.ResponseWriter, r *http.Request) {
 	sendMutex.Unlock()
 
 	// Lancer la campagne en arrière-plan avec le template choisi
-	go runCampaignBackground(req.TemplateID)
+	go runCampaignBackground(req.TemplateID, false)
 
 	log.Println("[INFO] Campagne d'envoi démarrée en arrière-plan")
 	w.Header().Set("Content-Type", "application/json")
@@ -892,7 +1114,7 @@ func writeEnvFile(vars templates.EnvData) error {
 }
 
 // runCampaignBackground exécute l'envoi de la campagne en arrière-plan (mode Web)
-func runCampaignBackground(templateId string) {
+func runCampaignBackground(templateId string, onlyUnsent bool) {
 	defer func() {
 		sendMutex.Lock()
 		sendInProgress = false
@@ -950,9 +1172,31 @@ func runCampaignBackground(templateId string) {
 		return
 	}
 
+	if onlyUnsent {
+		sentHistory := storage.LoadSentHistory()
+		var unsentRecipients []map[string]string
+		for _, rec := range recipients {
+			email := rec["Email"]
+			if email == "" {
+				continue
+			}
+			alreadySent := false
+			for _, sh := range sentHistory {
+				if strings.ToLower(sh.Email) == strings.ToLower(email) {
+					alreadySent = true
+					break
+				}
+			}
+			if !alreadySent {
+				unsentRecipients = append(unsentRecipients, rec)
+			}
+		}
+		recipients = unsentRecipients
+	}
+
 	if len(recipients) == 0 {
 		sendMutex.Lock()
-		sendLastLog = "Aucun destinataire dans le fichier CSV."
+		sendLastLog = "Aucun nouveau destinataire à contacter dans le fichier CSV."
 		sendMutex.Unlock()
 		return
 	}

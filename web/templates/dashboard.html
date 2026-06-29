@@ -37,13 +37,9 @@
                             <el-icon><User /></el-icon>
                             <span>Destinataires (CSV)</span>
                         </el-menu-item>
-                        <el-menu-item index="config">
+                        <el-menu-item index="settings">
                             <el-icon><Setting /></el-icon>
-                            <span>Modèle & Pièces Jointes</span>
-                        </el-menu-item>
-                        <el-menu-item index="env">
-                            <el-icon><Lock /></el-icon>
-                            <span>Configuration .env</span>
+                            <span>Paramètres</span>
                         </el-menu-item>
                     </el-menu>
 
@@ -77,7 +73,7 @@
                 <!-- Top Header Bar -->
                 <el-header class="header-bar">
                     <h1 class="header-title">
-                        {[ activeTab === 'tracker' ? 'Suivi des Candidatures' : activeTab === 'config' ? 'Configuration de l\'envoi (Texte Brut)' : 'Paramètres d\'environnement (.env)' ]}
+                        {[ activeTab === 'tracker' ? 'Suivi des Candidatures' : activeTab === 'recipients' ? 'Destinataires (CSV)' : 'Paramètres' ]}
                     </h1>
                 </el-header>
 
@@ -231,255 +227,608 @@
                         </el-card>
                     </div>
 
-                    <!-- View 2: Modèle & Pièces Jointes Config -->
-                    <div v-if="activeTab === 'config'">
-                        <el-row :gutter="20">
-                            <!-- Left form config (Multiple Templates Manager) -->
-                            <el-col :span="13">
-                                <el-card class="config-card" shadow="never" header="Gestion des Modèles d'E-mails">
-                                    <div style="display: flex; flex-direction: column; gap: 16px;">
-                                        
-                                        <!-- Model selector and actions -->
-                                        <div style="display: flex; gap: 12px; align-items: center;">
-                                            <el-select v-model="selectedTemplateId" placeholder="Choisir un modèle" style="flex-grow: 1;">
-                                                <el-option 
-                                                    v-for="t in templates" 
-                                                    :key="t.id" 
-                                                    :label="t.name + ' (' + t.type.toUpperCase() + ')'" 
-                                                    :value="t.id" 
-                                                />
-                                            </el-select>
-                                            
-                                            <el-button type="success" @click="handleCreateTemplate">
-                                                <el-icon><Plus /></el-icon> Nouveau
-                                            </el-button>
-                                            
-                                            <el-button 
-                                                type="danger" 
-                                                :disabled="templates.length <= 1"
-                                                @click="handleDeleteTemplate"
-                                            >
-                                                <el-icon><Delete /></el-icon>
-                                            </el-button>
-                                        </div>
-
-                                        <!-- Edit Active Template Form -->
-                                        <el-form label-position="top" v-if="activeTemplate">
-                                            <el-form-item label="Nom du modèle">
-                                                <el-input v-model="activeTemplate.name" placeholder="Ex: Relance Candidature" />
-                                            </el-form-item>
-
-                                            <el-form-item label="Type de message">
-                                                <el-radio-group v-model="activeTemplate.type">
-                                                    <el-radio-button label="txt">Texte brut</el-radio-button>
-                                                    <el-radio-button label="html">HTML</el-radio-button>
-                                                </el-radio-group>
-                                            </el-form-item>
-
-                                            <el-form-item label="Objet du mail">
-                                                <el-input v-model="activeTemplate.subject" placeholder="Ex: Candidature Alternance - [Votre Nom]" />
-                                            </el-form-item>
-
-                                            <el-form-item :label="activeTemplate.type === 'html' ? 'Corps du mail (HTML)' : 'Corps du mail (Texte Brut)'">
-                                                <!-- Variables Insert Toolbar -->
-                                                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
-                                                    <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('FirstName')">
-                                                        <el-icon style="margin-right: 4px;"><User /></el-icon> Prénom
-                                                    </el-button>
-                                                    <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('LastName')">
-                                                        <el-icon style="margin-right: 4px;"><User /></el-icon> Nom
-                                                    </el-button>
-                                                    <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('Company')">
-                                                        <el-icon style="margin-right: 4px;"><OfficeBuilding /></el-icon> Entreprise
-                                                    </el-button>
-                                                    <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('Position')">
-                                                        <el-icon style="margin-right: 4px;"><Briefcase /></el-icon> Poste
-                                                    </el-button>
-                                                    <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('SenderName')">
-                                                        <el-icon style="margin-right: 4px;"><Avatar /></el-icon> Votre Nom
-                                                    </el-button>
-
-                                                    <el-dropdown trigger="click">
-                                                        <el-button size="small" type="warning" plain>
-                                                            <el-icon style="margin-right: 4px;"><Link /></el-icon> Insérer lien... <el-icon class="el-icon--right"><ArrowDown /></el-icon>
-                                                        </el-button>
-                                                        <template #dropdown>
-                                                            <el-dropdown-menu>
-                                                                <el-dropdown-item v-if="settings.links.length === 0" disabled>
-                                                                    Aucun lien configuré
-                                                                </el-dropdown-item>
-                                                                <el-dropdown-item
-                                                                    v-for="l in settings.links"
-                                                                    :key="l.key"
-                                                                    @mousedown.prevent="insertVariable('link_' + l.key)"
-                                                                >
-                                                                    {[ l.label ]} ({[ getLinkVariable(l.key) ]})
-                                                                </el-dropdown-item>
-                                                            </el-dropdown-menu>
-                                                        </template>
-                                                    </el-dropdown>
-
-                                                    <el-button size="small" type="info" plain @click="showVariablesHelp = true">
-                                                        <el-icon style="margin-right: 4px;"><QuestionFilled /></el-icon> Aide variables
-                                                    </el-button>
-                                                </div>
-
-                                                <el-input 
-                                                    id="bodyTextarea"
-                                                    v-model="activeTemplate.body" 
-                                                    type="textarea" 
-                                                    :rows="12" 
-                                                    :placeholder="activeTemplate.type === 'html' ? 'Saisissez votre code HTML...' : 'Saisissez votre texte...'" 
-                                                    @keyup="updateCaret"
-                                                    @click="updateCaret"
-                                                    @select="updateCaret"
-                                                />
-                                                <div style="margin-top: 6px; font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.5;">
-                                                    Astuce : Vous pouvez injecter des variables de fusion issues de votre CSV : 
-                                                    <code>{[ varsHelp.FirstName ]}</code>, <code>{[ varsHelp.LastName ]}</code>, <code>{[ varsHelp.Company ]}</code>.<br>
-                                                    Pour les liens personnalisés, utilisez la syntaxe <code>{[ varsHelp.LinksVotreClef ]}</code> (ex: <code>{[ varsHelp.LinksPortfolio ]}</code>).
-                                                </div>
-                                            </el-form-item>
-
-                                            <!-- Legacy PortfolioURL field hidden but maintained for links compatibility -->
-                                            <el-form-item label="Lien du Portfolio (variable héritée {.PortfolioURL})" style="margin-top: 10px;">
-                                                <el-input v-model="settings.portfolioUrl" placeholder="Ex: https://monportfolio.com" />
-                                            </el-form-item>
-
-                                            <el-form-item>
-                                                <el-button type="primary" :loading="isSaving" @click="handleSaveSettings">
-                                                    <el-icon style="margin-right: 6px;"><Check /></el-icon>
-                                                    Sauvegarder les Modèles & Paramètres
-                                                </el-button>
-                                            </el-form-item>
-                                        </el-form>
-                                    </div>
-                                </el-card>
-                            </el-col>
-
-                            <!-- Right uploader (Attachments Manager) -->
-                            <el-col :span="11">
-                                <el-card class="config-card" shadow="never" header="Pièces Jointes jointes au modèle">
-                                    <div style="display: flex; flex-direction: column; gap: 20px;">
-                                        
-                                        <!-- Files table -->
-                                        <el-table 
-                                            :data="attachmentsList" 
-                                            style="width: 100%" 
-                                            size="default"
-                                            empty-text="Aucune pièce jointe. Les e-mails seront envoyés sans document joint."
-                                        >
-                                            <el-table-column label="Nom du fichier de candidature">
-                                                <template #default="scope">
-                                                    <div style="display: flex; align-items: center; gap: 8px;">
-                                                        <el-icon><Document /></el-icon>
-                                                        <span>{[ scope.row ]}</span>
+                    <!-- View 2: Paramètres (Settings) -->
+                    <div v-if="activeTab === 'settings'">
+                        <el-tabs v-model="activeSettingsSubTab" type="card" class="settings-tabs">
+                            
+                            <!-- Sub-tab 1: Modèles & Pièces jointes -->
+                            <el-tab-pane label="Modèles & Pièces jointes" name="templates">
+                                <div style="margin-top: 15px;">
+                                    <el-row :gutter="20">
+                                        <!-- Left form config (Multiple Templates Manager) -->
+                                        <el-col :xs="24" :sm="24" :md="24" :lg="13" :xl="13">
+                                            <el-card class="config-card" shadow="never">
+                                                <template #header>
+                                                    <div class="settings-card-header">
+                                                        <div class="settings-card-header-left">
+                                                            <el-tag type="primary" effect="plain" size="small" round>
+                                                                <el-icon style="margin-right: 4px;"><Promotion /></el-icon>Modèles d'e-mails
+                                                            </el-tag>
+                                                        </div>
                                                     </div>
                                                 </template>
-                                            </el-table-column>
-                                            
-                                            <el-table-column width="70" align="center">
-                                                <template #default="scope">
-                                                    <el-button
-                                                        type="danger"
-                                                        size="small"
-                                                        circle
-                                                        @click="handleDeleteAttachment(scope.row)"
-                                                    >
-                                                        <el-icon><Delete /></el-icon>
-                                                    </el-button>
-                                                </template>
-                                            </el-table-column>
-                                        </el-table>
+                                                <div style="display: flex; flex-direction: column; gap: 16px;">
+                                                    
+                                                    <!-- Model selector and actions -->
+                                                    <div style="display: flex; gap: 12px; align-items: center;">
+                                                        <el-select v-model="selectedTemplateId" placeholder="Choisir un modèle" style="flex-grow: 1;">
+                                                            <el-option 
+                                                                v-for="t in templates" 
+                                                                :key="t.id" 
+                                                                :label="t.name + ' (' + t.type.toUpperCase() + ')'" 
+                                                                :value="t.id" 
+                                                            />
+                                                        </el-select>
+                                                        
+                                                        <el-button type="success" @click="handleCreateTemplate">
+                                                            <el-icon><Plus /></el-icon> Nouveau
+                                                        </el-button>
+                                                        
+                                                        <el-button 
+                                                            type="danger" 
+                                                            :disabled="templates.length <= 1"
+                                                            @click="handleDeleteTemplate"
+                                                        >
+                                                            <el-icon><Delete /></el-icon>
+                                                        </el-button>
+                                                    </div>
 
-                                        <!-- Upload area -->
-                                        <el-upload
-                                            class="upload-demo"
-                                            drag
-                                            action="/upload-attachment"
-                                            name="file"
-                                            :on-success="handleUploadSuccess"
-                                            :on-error="handleUploadError"
-                                            multiple
-                                            :show-file-list="false"
-                                        >
-                                            <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-                                            <div class="el-upload__text">
-                                                Glissez vos documents de candidature ici (CV, lettre...) ou <em>cliquez pour charger</em>
-                                            </div>
-                                            <template #tip>
-                                                <div class="el-upload__tip" style="text-align: center;">
-                                                    Formats acceptés : PDF, PNG, JPG... (Max 10 Mo par document)
+                                                    <!-- Edit Active Template Form -->
+                                                    <el-form label-position="top" v-if="activeTemplate">
+                                                        <el-form-item label="Nom du modèle">
+                                                            <el-input v-model="activeTemplate.name" placeholder="Ex: Relance Candidature" />
+                                                        </el-form-item>
+
+                                                        <el-form-item label="Type de message">
+                                                            <el-radio-group v-model="activeTemplate.type">
+                                                                <el-radio-button label="txt">Texte brut</el-radio-button>
+                                                                <el-radio-button label="html">HTML</el-radio-button>
+                                                            </el-radio-group>
+                                                        </el-form-item>
+
+                                                        <el-form-item label="Objet du mail">
+                                                            <el-input v-model="activeTemplate.subject" placeholder="Ex: Candidature Alternance - [Votre Nom]" />
+                                                        </el-form-item>
+
+                                                        <el-form-item :label="activeTemplate.type === 'html' ? 'Corps du mail (HTML)' : 'Corps du mail (Texte Brut)'">
+                                                            <!-- Variables Insert Toolbar -->
+                                                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                                                                <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('FirstName')">
+                                                                    <el-icon style="margin-right: 4px;"><User /></el-icon> Prénom
+                                                                </el-button>
+                                                                <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('LastName')">
+                                                                    <el-icon style="margin-right: 4px;"><User /></el-icon> Nom
+                                                                </el-button>
+                                                                <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('Company')">
+                                                                    <el-icon style="margin-right: 4px;"><OfficeBuilding /></el-icon> Entreprise
+                                                                </el-button>
+                                                                <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('Position')">
+                                                                    <el-icon style="margin-right: 4px;"><Briefcase /></el-icon> Poste
+                                                                </el-button>
+                                                                <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('SenderName')">
+                                                                    <el-icon style="margin-right: 4px;"><Avatar /></el-icon> Votre Nom
+                                                                </el-button>
+
+                                                                <el-dropdown trigger="click">
+                                                                    <el-button size="small" type="warning" plain>
+                                                                        <el-icon style="margin-right: 4px;"><Link /></el-icon> Insérer lien... <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                                                                    </el-button>
+                                                                    <template #dropdown>
+                                                                        <el-dropdown-menu>
+                                                                            <el-dropdown-item v-if="settings.links.length === 0" disabled>
+                                                                                Aucun lien configuré
+                                                                            </el-dropdown-item>
+                                                                            <el-dropdown-item
+                                                                                v-for="l in settings.links"
+                                                                                :key="l.key"
+                                                                                @mousedown.prevent="insertVariable('link_' + l.key)"
+                                                                            >
+                                                                                {[ l.label ]} ({[ getLinkVariable(l.key) ]})
+                                                                            </el-dropdown-item>
+                                                                        </el-dropdown-menu>
+                                                                    </template>
+                                                                </el-dropdown>
+
+                                                                <el-button size="small" type="info" plain @click="showVariablesHelp = true">
+                                                                    <el-icon style="margin-right: 4px;"><QuestionFilled /></el-icon> Aide variables
+                                                                </el-button>
+                                                            </div>
+
+                                                            <el-input 
+                                                                id="bodyTextarea"
+                                                                v-model="activeTemplate.body" 
+                                                                type="textarea" 
+                                                                :rows="12" 
+                                                                :placeholder="activeTemplate.type === 'html' ? 'Saisissez votre code HTML...' : 'Saisissez votre texte...'" 
+                                                                @keyup="updateCaret"
+                                                                @click="updateCaret"
+                                                                @select="updateCaret"
+                                                            />
+                                                            <div style="margin-top: 6px; font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.5;">
+                                                                Astuce : Vous pouvez injecter des variables de fusion issues de votre CSV : 
+                                                                <code>{[ varsHelp.FirstName ]}</code>, <code>{[ varsHelp.LastName ]}</code>, <code>{[ varsHelp.Company ]}</code>.<br>
+                                                                Pour les liens personnalisés, utilisez la syntaxe <code>{[ varsHelp.LinksVotreClef ]}</code> (ex: <code>{[ varsHelp.LinksPortfolio ]}</code>).
+                                                            </div>
+                                                        </el-form-item>
+
+                                                        <!-- Legacy PortfolioURL field hidden but maintained for links compatibility -->
+                                                        <el-form-item label="Lien du Portfolio (variable héritée {.PortfolioURL})" style="margin-top: 10px;">
+                                                            <el-input v-model="settings.portfolioUrl" placeholder="Ex: https://monportfolio.com" />
+                                                        </el-form-item>
+
+                                                        <el-form-item>
+                                                            <el-button type="primary" :loading="isSaving" @click="handleSaveSettings">
+                                                                <el-icon style="margin-right: 6px;"><Check /></el-icon>
+                                                                Sauvegarder les Modèles & Paramètres
+                                                            </el-button>
+                                                        </el-form-item>
+                                                    </el-form>
                                                 </div>
-                                            </template>
-                                        </el-upload>
-                                    </div>
-                                </el-card>
+                                            </el-card>
+                                        </el-col>
 
-                                <!-- Custom Links Manager Card -->
-                                <el-card class="config-card" shadow="never" header="Gestion des Liens" style="margin-top: 20px;">
-                                    <div style="display: flex; flex-direction: column; gap: 16px;">
-                                        <div style="font-size: 13px; color: var(--el-text-color-regular);">
-                                            Configurez des liens nommés cliquables utilisables dans vos modèles.
-                                        </div>
-
-                                        <!-- Links Table -->
-                                        <el-table 
-                                            :data="settings.links" 
-                                            style="width: 100%" 
-                                            size="small"
-                                            empty-text="Aucun lien personnalisé."
-                                        >
-                                            <el-table-column label="Variable" width="165">
-                                                <template #default="scope">
-                                                    <code>{[ getLinkVariable(scope.row.key) ]}</code>
+                                        <!-- Right uploader (Attachments Manager) -->
+                                        <el-col :xs="24" :sm="24" :md="24" :lg="11" :xl="11">
+                                            <el-card class="config-card" shadow="never">
+                                                <template #header>
+                                                    <div class="settings-card-header">
+                                                        <el-tag type="success" effect="plain" size="small" round>
+                                                            <el-icon style="margin-right: 4px;"><PaperClip /></el-icon>Pièces jointes
+                                                        </el-tag>
+                                                    </div>
                                                 </template>
-                                            </el-table-column>
-                                            <el-table-column label="Texte" prop="label" width="100" />
-                                            <el-table-column label="URL" prop="url" show-overflow-tooltip />
-                                            <el-table-column width="60" align="center">
-                                                <template #default="scope">
-                                                    <el-button
-                                                        type="danger"
-                                                        size="small"
-                                                        circle
-                                                        @click="handleRemoveLink(scope.$index)"
+                                                <div style="display: flex; flex-direction: column; gap: 20px;">
+                                                    
+                                                    <!-- Files table -->
+                                                    <el-table 
+                                                        :data="attachmentsList" 
+                                                        style="width: 100%" 
+                                                        size="default"
+                                                        empty-text="Aucune pièce jointe. Les e-mails seront envoyés sans document joint."
                                                     >
-                                                        <el-icon><Delete /></el-icon>
-                                                    </el-button>
-                                                </template>
-                                            </el-table-column>
-                                        </el-table>
+                                                        <el-table-column label="Nom du fichier de candidature">
+                                                            <template #default="scope">
+                                                                <div style="display: flex; align-items: center; gap: 8px;">
+                                                                    <el-icon><Document /></el-icon>
+                                                                    <span>{[ scope.row ]}</span>
+                                                                </div>
+                                                            </template>
+                                                        </el-table-column>
+                                                        
+                                                        <el-table-column width="70" align="center">
+                                                            <template #default="scope">
+                                                                <el-button
+                                                                    type="danger"
+                                                                    size="small"
+                                                                    circle
+                                                                    @click="handleDeleteAttachment(scope.row)"
+                                                                >
+                                                                    <el-icon><Delete /></el-icon>
+                                                                </el-button>
+                                                            </template>
+                                                        </el-table-column>
+                                                    </el-table>
 
-                                        <!-- Add Link Form -->
-                                        <div style="border-top: 1px solid var(--el-border-color-light); padding-top: 16px;">
-                                            <h5 style="margin: 0 0 12px 0; font-size: 13px; font-weight: 600;">Ajouter un nouveau lien</h5>
-                                            <el-form label-position="top" size="small">
-                                                <el-row :gutter="10">
-                                                    <el-col :span="8">
-                                                        <el-form-item label="Clef (sans espace)" style="margin-bottom: 8px;">
-                                                            <el-input v-model="newLinkKey" placeholder="Ex: Portfolio" />
-                                                        </el-form-item>
-                                                    </el-col>
-                                                    <el-col :span="16">
-                                                        <el-form-item label="Texte cliquable" style="margin-bottom: 8px;">
-                                                            <el-input v-model="newLinkLabel" placeholder="Ex: Consulter mon Portfolio" />
-                                                        </el-form-item>
-                                                    </el-col>
-                                                </el-row>
-                                                <el-form-item label="URL de redirection" style="margin-bottom: 12px;">
-                                                    <el-input v-model="newLinkUrl" placeholder="Ex: https://monportfolio.com" />
-                                                </el-form-item>
-                                                <el-button type="success" size="small" style="width: 100%;" @click="handleAddLink">
-                                                    <el-icon style="margin-right: 4px;"><Plus /></el-icon>
-                                                    Ajouter le lien
-                                                </el-button>
-                                            </el-form>
-                                        </div>
-                                    </div>
-                                </el-card>
-                            </el-col>
-                        </el-row>
+                                                    <!-- Upload area -->
+                                                    <el-upload
+                                                        class="upload-demo"
+                                                        drag
+                                                        action="/upload-attachment"
+                                                        name="file"
+                                                        :on-success="handleUploadSuccess"
+                                                        :on-error="handleUploadError"
+                                                        multiple
+                                                        :show-file-list="false"
+                                                    >
+                                                        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+                                                        <div class="el-upload__text">
+                                                            Glissez vos documents de candidature ici (CV, lettre...) ou <em>cliquez pour charger</em>
+                                                        </div>
+                                                        <template #tip>
+                                                            <div class="el-upload__tip" style="text-align: center;">
+                                                                Formats acceptés : PDF, PNG, JPG... (Max 10 Mo par document)
+                                                            </div>
+                                                        </template>
+                                                    </el-upload>
+                                                </div>
+                                            </el-card>
+
+                                            <!-- Custom Links Manager Card -->
+                                            <el-card class="config-card" shadow="never" style="margin-top: 20px;">
+                                                <template #header>
+                                                    <div class="settings-card-header">
+                                                        <el-tag type="warning" effect="plain" size="small" round>
+                                                            <el-icon style="margin-right: 4px;"><Link /></el-icon>Liens personnalisés
+                                                        </el-tag>
+                                                    </div>
+                                                </template>
+                                                <div style="display: flex; flex-direction: column; gap: 16px;">
+                                                    <div style="font-size: 13px; color: var(--el-text-color-regular);">
+                                                        Configurez des liens nommés cliquables utilisables dans vos modèles.
+                                                    </div>
+
+                                                    <!-- Links Table -->
+                                                    <el-table 
+                                                        :data="settings.links" 
+                                                        style="width: 100%" 
+                                                        size="small"
+                                                        empty-text="Aucun lien personnalisé."
+                                                    >
+                                                        <el-table-column label="Variable" width="165">
+                                                            <template #default="scope">
+                                                                <code>{[ getLinkVariable(scope.row.key) ]}</code>
+                                                            </template>
+                                                        </el-table-column>
+                                                        <el-table-column label="Texte" prop="label" width="100" />
+                                                        <el-table-column label="URL" prop="url" show-overflow-tooltip />
+                                                        <el-table-column width="60" align="center">
+                                                            <template #default="scope">
+                                                                <el-button
+                                                                    type="danger"
+                                                                    size="small"
+                                                                    circle
+                                                                    @click="handleRemoveLink(scope.$index)"
+                                                                >
+                                                                    <el-icon><Delete /></el-icon>
+                                                                </el-button>
+                                                            </template>
+                                                        </el-table-column>
+                                                    </el-table>
+
+                                                    <!-- Add Link Form -->
+                                                    <div style="border-top: 1px solid var(--el-border-color-light); padding-top: 16px;">
+                                                        <h5 style="margin: 0 0 12px 0; font-size: 13px; font-weight: 600;">Ajouter un nouveau lien</h5>
+                                                        <el-form label-position="top" size="small">
+                                                            <el-row :gutter="10">
+                                                                <el-col :span="8">
+                                                                    <el-form-item label="Clef (sans espace)" style="margin-bottom: 8px;">
+                                                                        <el-input v-model="newLinkKey" placeholder="Ex: Portfolio" />
+                                                                    </el-form-item>
+                                                                </el-col>
+                                                                <el-col :span="16">
+                                                                    <el-form-item label="Texte cliquable" style="margin-bottom: 8px;">
+                                                                        <el-input v-model="newLinkLabel" placeholder="Ex: Consulter mon Portfolio" />
+                                                                    </el-form-item>
+                                                                </el-col>
+                                                            </el-row>
+                                                            <el-form-item label="URL de redirection" style="margin-bottom: 12px;">
+                                                                <el-input v-model="newLinkUrl" placeholder="Ex: https://monportfolio.com" />
+                                                            </el-form-item>
+                                                            <el-button type="success" size="small" style="width: 100%;" @click="handleAddLink">
+                                                                <el-icon style="margin-right: 4px;"><Plus /></el-icon>
+                                                                Ajouter le lien
+                                                            </el-button>
+                                                        </el-form>
+                                                    </div>
+                                                </div>
+                                            </el-card>
+                                        </el-col>
+                                    </el-row>
+                                </div>
+                            </el-tab-pane>
+
+                            <!-- Sub-tab 2: Actions Automatiques -->
+                            <el-tab-pane label="Actions Automatiques" name="automation">
+                                <div style="margin-top: 15px;">
+                                    <el-row :gutter="20">
+                                        <!-- Left: Auto-Send Scheduler -->
+                                        <el-col :xs="24" :sm="24" :md="24" :lg="14" :xl="14">
+                                            <el-card class="config-card" shadow="never">
+                                                <template #header>
+                                                    <div class="settings-card-header">
+                                                        <el-tag type="warning" effect="plain" size="small" round>
+                                                            <el-icon style="margin-right: 4px;"><Promotion /></el-icon>Envoi automatique (Auto-Send)
+                                                        </el-tag>
+                                                        <el-button
+                                                            size="small"
+                                                            type="info"
+                                                            plain
+                                                            @click="testServerTime"
+                                                            :loading="testingTime"
+                                                            style="margin-left: auto;"
+                                                        >
+                                                            <el-icon style="margin-right: 4px;"><Clock /></el-icon>Tester l'heure serveur
+                                                        </el-button>
+                                                    </div>
+                                                </template>
+
+                                                <el-form label-position="top">
+                                                    <!-- Enable switch + template selector -->
+                                                    <el-row :gutter="16">
+                                                        <el-col :xs="24" :sm="12">
+                                                            <el-form-item label="Activer l'envoi auto">
+                                                                <el-switch
+                                                                    v-model="autoSendEnabled"
+                                                                    @change="toggleAutoSend"
+                                                                    active-text="Activé"
+                                                                    inactive-text="Désactivé"
+                                                                />
+                                                            </el-form-item>
+                                                        </el-col>
+                                                        <el-col :xs="24" :sm="12">
+                                                            <el-form-item label="Modèle à utiliser">
+                                                                <el-select
+                                                                    v-model="autoSendTemplateId"
+                                                                    placeholder="Sélectionner un modèle"
+                                                                    style="width: 100%;"
+                                                                    :disabled="!autoSendEnabled"
+                                                                    @change="onAutoSendTemplateChange"
+                                                                >
+                                                                    <el-option
+                                                                        v-for="t in templates"
+                                                                        :key="t.id"
+                                                                        :label="t.name"
+                                                                        :value="t.id"
+                                                                    />
+                                                                </el-select>
+                                                            </el-form-item>
+                                                        </el-col>
+                                                    </el-row>
+
+                                                    <el-form-item label="Options d'envoi">
+                                                        <el-checkbox
+                                                            v-model="autoSendSkipAlreadySent"
+                                                            :disabled="!autoSendEnabled"
+                                                            @change="onAutoSendSkipChange"
+                                                        >
+                                                            Éviter les doublons (ne pas envoyer si déjà contacté)
+                                                        </el-checkbox>
+                                                    </el-form-item>
+
+                                                    <!-- Weekly Schedule -->
+                                                    <el-divider content-position="left">
+                                                        <el-text size="small" type="info">Planification hebdomadaire</el-text>
+                                                    </el-divider>
+
+                                                    <div style="font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 12px;">
+                                                        Cochez les jours souhaités et définissez l'heure d'envoi pour chaque jour. Les heures sont celles du serveur.
+                                                    </div>
+
+                                                    <div class="schedule-grid" :class="{ 'schedule-disabled': !autoSendEnabled }">
+                                                        <div
+                                                            v-for="day in weekDays"
+                                                            :key="day.key"
+                                                            class="schedule-day-row"
+                                                            :class="{ 'schedule-day-active': isScheduled(day.key) }"
+                                                        >
+                                                            <el-checkbox
+                                                                :model-value="isScheduled(day.key)"
+                                                                @change="(v) => toggleScheduleDay(day.key, v)"
+                                                                :disabled="!autoSendEnabled"
+                                                            >
+                                                                <span class="schedule-day-label">{[ day.label ]}</span>
+                                                            </el-checkbox>
+                                                            <el-time-select
+                                                                v-if="isScheduled(day.key)"
+                                                                v-model="scheduleTimeMap[day.key]"
+                                                                start="00:00"
+                                                                step="00:15"
+                                                                end="23:45"
+                                                                placeholder="HH:mm"
+                                                                :disabled="!autoSendEnabled"
+                                                                size="small"
+                                                                :clearable="false"
+                                                                style="width: 110px; margin-left: auto;"
+                                                            />
+                                                            <span v-else style="margin-left: auto; font-size: 11px; color: var(--el-text-color-placeholder);">—</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Summary of configured slots -->
+                                                    <div v-if="autoSendSchedule.length > 0" style="margin-top: 12px;">
+                                                        <el-text size="small" type="success">
+                                                            <el-icon><Check /></el-icon>
+                                                            {[ autoSendSchedule.length ]} créneau(x) configuré(s)
+                                                        </el-text>
+                                                        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
+                                                            <el-tag
+                                                                v-for="slot in autoSendSchedule"
+                                                                :key="slot.day + slot.time"
+                                                                size="small"
+                                                                type="warning"
+                                                                effect="light"
+                                                                closable
+                                                                @close="removeScheduleSlot(slot)"
+                                                            >
+                                                                {[ getDayLabel(slot.day) ]} {[ slot.time ]}
+                                                            </el-tag>
+                                                        </div>
+                                                    </div>
+                                                    <el-text v-else size="small" type="info" style="margin-top: 8px; display: block;">
+                                                        Aucun créneau configuré — l'auto-send ne se déclenchera pas.
+                                                    </el-text>
+
+                                                    <el-form-item style="margin-top: 16px; margin-bottom: 0;">
+                                                        <div style="display: flex; gap: 10px; width: 100%; flex-wrap: wrap;">
+                                                            <el-button
+                                                                type="primary"
+                                                                :loading="isSavingAutoSend"
+                                                                :disabled="!autoSendEnabled"
+                                                                @click="saveAutoSendSchedule"
+                                                            >
+                                                                <el-icon style="margin-right: 6px;"><Check /></el-icon>
+                                                                Enregistrer la planification
+                                                            </el-button>
+                                                            <el-button
+                                                                type="info"
+                                                                plain
+                                                                :loading="testingTime"
+                                                                @click="testServerTime"
+                                                            >
+                                                                <el-icon style="margin-right: 6px;"><Clock /></el-icon>
+                                                                Test heure
+                                                            </el-button>
+                                                        </div>
+                                                    </el-form-item>
+                                                </el-form>
+                                            </el-card>
+                                        </el-col>
+
+                                        <!-- Right: Auto-Sync IMAP -->
+                                        <el-col :xs="24" :sm="24" :md="24" :lg="10" :xl="10">
+                                            <el-card class="config-card" shadow="never">
+                                                <template #header>
+                                                    <el-tag effect="plain" size="small" round>
+                                                        <el-icon style="margin-right: 4px;"><Refresh /></el-icon>Auto-sync IMAP
+                                                    </el-tag>
+                                                </template>
+                                                <div style="font-size: 13px; line-height: 1.6; color: var(--el-text-color-regular); margin-bottom: 16px;">
+                                                    <p>Activez la synchronisation automatique pour importer les réponses Gmail périodiquement sans intervention manuelle.</p>
+                                                </div>
+                                                
+                                                <el-form label-position="top">
+                                                    <el-form-item label="Activer l'auto-sync">
+                                                        <el-switch
+                                                            v-model="autoSyncEnabled"
+                                                            @change="toggleAutoSync"
+                                                            active-text="Activé"
+                                                            inactive-text="Désactivé"
+                                                        />
+                                                    </el-form-item>
+                                                    
+                                                    <el-form-item label="Intervalle (minutes)">
+                                                        <el-slider
+                                                            v-model="autoSyncInterval"
+                                                            :min="1"
+                                                            :max="60"
+                                                            :step="1"
+                                                            show-input
+                                                            :disabled="!autoSyncEnabled"
+                                                            @change="onAutoSyncIntervalChange"
+                                                        />
+                                                        <div style="font-size: 12px; color: var(--el-text-color-secondary); margin-top: 4px;">
+                                                            Synchronisation toutes les <strong>{[ autoSyncInterval ]} minute(s)</strong>
+                                                        </div>
+                                                    </el-form-item>
+                                                </el-form>
+                                            </el-card>
+                                        </el-col>
+                                    </el-row>
+                                </div>
+                            </el-tab-pane>
+
+                            <!-- Sub-tab 3: Configuration .env -->
+                            <el-tab-pane label="Configuration .env" name="env">
+                                <div style="margin-top: 15px;">
+                                    <el-row :gutter="20">
+                                        <el-col :xs="24" :sm="24" :md="24" :lg="16" :xl="16">
+                                            <el-card class="config-card" shadow="never">
+                                                <template #header>
+                                                    <div class="settings-card-header">
+                                                        <el-tag type="danger" effect="plain" size="small" round>
+                                                            <el-icon style="margin-right: 4px;"><Lock /></el-icon>Fichier .env — Configuration serveur
+                                                        </el-tag>
+                                                        <el-tooltip content="Ces paramètres sont sauvegardés dans le fichier .env local" placement="top">
+                                                            <el-icon style="color: var(--el-text-color-placeholder); cursor: help;"><QuestionFilled /></el-icon>
+                                                        </el-tooltip>
+                                                    </div>
+                                                </template>
+                                                <el-form label-position="top">
+                                                    <el-divider content-position="left"><el-text size="small" type="info">SMTP — Envoi</el-text></el-divider>
+                                                    <el-row :gutter="20">
+                                                        <el-col :xs="24" :sm="12">
+                                                            <el-form-item label="Serveur SMTP (Envoi)">
+                                                                <el-input v-model="envVars.smtpHost" placeholder="smtp.gmail.com" />
+                                                            </el-form-item>
+                                                        </el-col>
+                                                        <el-col :span="12">
+                                                            <el-form-item label="Port SMTP">
+                                                                <el-input v-model="envVars.smtpPort" placeholder="587" />
+                                                            </el-form-item>
+                                                        </el-col>
+                                                    </el-row>
+
+                                                    <el-divider content-position="left"><el-text size="small" type="info">IMAP — Réception</el-text></el-divider>
+                                                    <el-row :gutter="20">
+                                                        <el-col :xs="24" :sm="12">
+                                                            <el-form-item label="Serveur IMAP (Réception/Suivi)">
+                                                                <el-input v-model="envVars.imapHost" placeholder="imap.gmail.com" />
+                                                            </el-form-item>
+                                                        </el-col>
+                                                        <el-col :xs="24" :sm="12">
+                                                            <el-form-item label="Port IMAP">
+                                                                <el-input v-model="envVars.imapPort" placeholder="993" />
+                                                            </el-form-item>
+                                                        </el-col>
+                                                    </el-row>
+
+                                                    <el-divider content-position="left"><el-text size="small" type="info">Identité d'expéditeur</el-text></el-divider>
+                                                    <el-row :gutter="20">
+                                                        <el-col :xs="24" :sm="12">
+                                                            <el-form-item label="Votre adresse e-mail Gmail">
+                                                                <el-input v-model="envVars.smtpEmail" placeholder="votre.email@gmail.com" />
+                                                            </el-form-item>
+                                                        </el-col>
+                                                        <el-col :xs="24" :sm="12">
+                                                            <el-form-item label="Mot de passe d'application Google">
+                                                                <el-input 
+                                                                    v-model="envVars.smtpPassword" 
+                                                                    type="password" 
+                                                                    show-password
+                                                                    placeholder="abcd efgh ijkl mnop" 
+                                                                />
+                                                            </el-form-item>
+                                                        </el-col>
+                                                    </el-row>
+
+                                                    <el-row :gutter="20">
+                                                        <el-col :xs="24" :sm="12">
+                                                            <el-form-item label="Nom d'expéditeur affiché">
+                                                                <el-input v-model="envVars.senderName" placeholder="Ex: Jean Dupont" />
+                                                            </el-form-item>
+                                                        </el-col>
+                                                        <el-col :xs="24" :sm="12">
+                                                            <el-form-item label="Délai entre envois (ms)">
+                                                                <el-input v-model="envVars.sendDelayMs" placeholder="1500" />
+                                                            </el-form-item>
+                                                        </el-col>
+                                                    </el-row>
+
+                                                    <el-divider content-position="left"><el-text size="small" type="info">Serveur web</el-text></el-divider>
+                                                    <el-row :gutter="20">
+                                                        <el-col :xs="24" :sm="12">
+                                                            <el-form-item label="Port du Serveur Web local">
+                                                                <el-input v-model="envVars.port" placeholder="8080">
+                                                                    <template #append>
+                                                                        <el-tooltip content="Nécessite un redémarrage" placement="top">
+                                                                            <el-icon><Warning /></el-icon>
+                                                                        </el-tooltip>
+                                                                    </template>
+                                                                </el-input>
+                                                            </el-form-item>
+                                                        </el-col>
+                                                    </el-row>
+
+                                                    <el-form-item style="margin-bottom: 0;">
+                                                        <el-button type="primary" :loading="isSavingEnv" @click="handleSaveEnv">
+                                                            <el-icon style="margin-right: 6px;"><Check /></el-icon>
+                                                            Mettre à jour la configuration (.env)
+                                                        </el-button>
+                                                    </el-form-item>
+                                                </el-form>
+                                            </el-card>
+                                        </el-col>
+
+                                        <el-col :xs="24" :sm="24" :md="24" :lg="8" :xl="8">
+                                            <el-card class="config-card" shadow="never">
+                                                <template #header>
+                                                    <el-tag type="info" effect="plain" size="small" round>
+                                                        <el-icon style="margin-right: 4px;"><InfoFilled /></el-icon>À propos du .env
+                                                    </el-tag>
+                                                </template>
+                                                <div style="font-size: 13px; line-height: 1.6; color: var(--el-text-color-regular);">
+                                                    <p style="margin-bottom: 12px;"><strong>À propos du fichier .env :</strong></p>
+                                                    <p style="margin-bottom: 12px;">Ces paramètres sont stockés localement dans le fichier caché <code>.env</code> situé à la racine du projet.</p>
+                                                    <p style="margin-bottom: 12px;">En enregistrant les modifications, le serveur met à jour le fichier et applique <strong>immédiatement</strong> les nouveaux accès SMTP et IMAP sans nécessiter de redémarrage de l'application (sauf pour le port d'écoute HTTP).</p>
+                                                    <p style="margin-bottom: 12px;"><strong style="color: var(--el-color-warning);">Validation en deux étapes Google :</strong> N'utilisez pas votre mot de passe Gmail standard. Créez un mot de passe d'application à 16 lettres dans l'interface de gestion de votre compte Google.</p>
+                                                </div>
+                                            </el-card>
+                                        </el-col>
+                                    </el-row>
+                                </div>
+                            </el-tab-pane>
+
+                        </el-tabs>
                     </div>
 
                     <!-- View 4: Destinataires CSV Editor -->
@@ -577,132 +926,6 @@
                                 </el-table-column>
                             </el-table>
                         </el-card>
-                    </div>
-
-                    <!-- View 3: Configuration .env -->
-                    <div v-if="activeTab === 'env'">
-                        <el-row :gutter="20">
-                            <el-col :span="16">
-                                <el-card class="config-card" shadow="never" header="Paramètres du Fichier d'environnement (.env)">
-                                    <el-form label-position="top">
-                                        <el-row :gutter="20">
-                                            <el-col :span="12">
-                                                <el-form-item label="Serveur SMTP (Envoi)">
-                                                    <el-input v-model="envVars.smtpHost" placeholder="smtp.gmail.com" />
-                                                </el-form-item>
-                                            </el-col>
-                                            <el-col :span="12">
-                                                <el-form-item label="Port SMTP">
-                                                    <el-input v-model="envVars.smtpPort" placeholder="587" />
-                                                </el-form-item>
-                                            </el-col>
-                                        </el-row>
-
-                                        <el-row :gutter="20">
-                                            <el-col :span="12">
-                                                <el-form-item label="Serveur IMAP (Réception/Suivi)">
-                                                    <el-input v-model="envVars.imapHost" placeholder="imap.gmail.com" />
-                                                </el-form-item>
-                                            </el-col>
-                                            <el-col :span="12">
-                                                <el-form-item label="Port IMAP">
-                                                    <el-input v-model="envVars.imapPort" placeholder="993" />
-                                                </el-form-item>
-                                            </el-col>
-                                        </el-row>
-
-                                        <el-row :gutter="20">
-                                            <el-col :span="12">
-                                                <el-form-item label="Votre adresse e-mail Gmail">
-                                                    <el-input v-model="envVars.smtpEmail" placeholder="votre.email@gmail.com" />
-                                                </el-form-item>
-                                            </el-col>
-                                            <el-col :span="12">
-                                                <el-form-item label="Mot de passe d'application Google">
-                                                    <el-input 
-                                                        v-model="envVars.smtpPassword" 
-                                                        type="password" 
-                                                        show-password
-                                                        placeholder="abcd efgh ijkl mnop" 
-                                                    />
-                                                </el-form-item>
-                                            </el-col>
-                                        </el-row>
-
-                                        <el-row :gutter="20">
-                                            <el-col :span="12">
-                                                <el-form-item label="Nom d'expéditeur affiché">
-                                                    <el-input v-model="envVars.senderName" placeholder="Ex: Jean Dupont" />
-                                                </el-form-item>
-                                            </el-col>
-                                            <el-col :span="12">
-                                                <el-form-item label="Délai entre envois (ms)">
-                                                    <el-input v-model="envVars.sendDelayMs" placeholder="1500" />
-                                                </el-form-item>
-                                            </el-col>
-                                        </el-row>
-
-                                        <el-row :gutter="20">
-                                            <el-col :span="12">
-                                                <el-form-item label="Port du Serveur Web local (Requiert un redémarrage pour changer de port)">
-                                                    <el-input v-model="envVars.port" placeholder="8080" />
-                                                </el-form-item>
-                                            </el-col>
-                                        </el-row>
-
-                                        <el-form-item>
-                                            <el-button type="primary" :loading="isSavingEnv" @click="handleSaveEnv">
-                                                <el-icon style="margin-right: 6px;"><Check /></el-icon>
-                                                Mettre à jour la configuration (.env)
-                                            </el-button>
-                                        </el-form-item>
-                                    </el-form>
-                                </el-card>
-                            </el-col>
-
-                            <el-col :span="8">
-                                <el-card class="config-card" shadow="never" header="Explications">
-                                    <div style="font-size: 13px; line-height: 1.6; color: var(--el-text-color-regular);">
-                                        <p style="margin-bottom: 12px;"><strong>À propos du fichier .env :</strong></p>
-                                        <p style="margin-bottom: 12px;">Ces paramètres sont stockés localement dans le fichier caché <code>.env</code> situé à la racine du projet.</p>
-                                        <p style="margin-bottom: 12px;">En enregistrant les modifications, le serveur met à jour le fichier et applique <strong>immédiatement</strong> les nouveaux accès SMTP et IMAP sans nécessiter de redémarrage de l'application (sauf pour le port d'écoute HTTP).</p>
-                                        <p style="margin-bottom: 12px;"><strong style="color: var(--el-color-warning);">Validation en deux étapes Google :</strong> N'utilisez pas votre mot de passe Gmail standard. Créez un mot de passe d'application à 16 lettres dans l'interface de gestion de votre compte Google.</p>
-                                    </div>
-                                </el-card>
-
-                                <el-card class="config-card" shadow="never" header="Synchronisation automatique IMAP" style="margin-top: 20px;">
-                                    <div style="font-size: 13px; line-height: 1.6; color: var(--el-text-color-regular); margin-bottom: 16px;">
-                                        <p>Activez la synchronisation automatique pour importer les réponses Gmail périodiquement sans intervention manuelle.</p>
-                                    </div>
-                                    
-                                    <el-form label-position="top">
-                                        <el-form-item label="Activer l'auto-sync">
-                                            <el-switch
-                                                v-model="autoSyncEnabled"
-                                                @change="toggleAutoSync"
-                                                active-text="Activé"
-                                                inactive-text="Désactivé"
-                                            />
-                                        </el-form-item>
-                                        
-                                        <el-form-item label="Intervalle (minutes)">
-                                            <el-slider
-                                                v-model="autoSyncInterval"
-                                                :min="1"
-                                                :max="60"
-                                                :step="1"
-                                                show-input
-                                                :disabled="!autoSyncEnabled"
-                                                @change="onAutoSyncIntervalChange"
-                                            />
-                                            <div style="font-size: 12px; color: var(--el-text-color-secondary); margin-top: 4px;">
-                                                Synchronisation toutes les <strong>{[ autoSyncInterval ]} minute(s)</strong>
-                                            </div>
-                                        </el-form-item>
-                                    </el-form>
-                                </el-card>
-                            </el-col>
-                        </el-row>
                     </div>
 
                 </el-main>
@@ -978,6 +1201,7 @@
             },
             setup() {
                 const activeTab = ref('tracker');
+                const activeSettingsSubTab = ref('templates');
 
                 const candidates = ref(rawCandidates || []);
                 const replies = ref(rawReplies || []);
@@ -993,6 +1217,45 @@
                 const autoSyncEnabled = ref(false);
                 const autoSyncInterval = ref(5); // minutes par défaut
                 let autoSyncTimer = null;
+
+                const autoSendEnabled = ref(false);
+                const autoSendInterval = ref(60); // minutes legacy
+                const autoSendTemplateId = ref('');
+                const autoSendSkipAlreadySent = ref(true);
+                const autoSendSchedule = ref([]); // [{ day, time }]
+                // scheduleTimeMap is a reactive plain object used as v-model for each el-time-picker.
+                // Decoupled from autoSendSchedule so the picker keeps its internal scroll state
+                // without being reset by array mutations.
+                const scheduleTimeMap = Vue.reactive({
+                    monday: '09:00',
+                    tuesday: '09:00',
+                    wednesday: '09:00',
+                    thursday: '09:00',
+                    friday: '09:00',
+                    saturday: '09:00',
+                    sunday: '09:00'
+                });
+                const isSavingAutoSend = ref(false);
+                const testingTime = ref(false);
+
+                // Sync scheduleTimeMap values into autoSendSchedule list in real-time
+                watch(() => ({ ...scheduleTimeMap }), (newMap) => {
+                    autoSendSchedule.value.forEach(slot => {
+                        if (newMap[slot.day]) {
+                            slot.time = newMap[slot.day];
+                        }
+                    });
+                }, { deep: true });
+
+                const weekDays = [
+                    { key: 'monday',    label: 'Lundi' },
+                    { key: 'tuesday',   label: 'Mardi' },
+                    { key: 'wednesday', label: 'Mercredi' },
+                    { key: 'thursday',  label: 'Jeudi' },
+                    { key: 'friday',    label: 'Vendredi' },
+                    { key: 'saturday',  label: 'Samedi' },
+                    { key: 'sunday',    label: 'Dimanche' },
+                ];
 
                 // Config variables
                 const settings = ref(rawSettings || { subject: '', portfolioUrl: '', links: [] });
@@ -1483,6 +1746,244 @@
                     }
                 };
 
+                // Auto-send campaigns
+                const toggleAutoSend = async (val) => {
+                    try {
+                        const response = await fetch('/api/auto-send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                enabled: val,
+                                interval: autoSendInterval.value,
+                                templateId: autoSendTemplateId.value,
+                                skipAlreadySent: autoSendSkipAlreadySent.value,
+                                schedule: autoSendSchedule.value
+                            })
+                        });
+                        const result = await response.json();
+                        if (result.status === 'success') {
+                            autoSendEnabled.value = result.enabled;
+                            ElementPlus.ElNotification({
+                                title: result.enabled ? 'Auto-send activé' : 'Auto-send désactivé',
+                                message: result.enabled ? `Planification enregistrée (${autoSendSchedule.value.length} créneau(x))` : `L'envoi automatique de campagnes est arrêté`,
+                                type: 'info',
+                                duration: 3000
+                            });
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        autoSendEnabled.value = !val; // rollback
+                    }
+                };
+
+                const onAutoSendIntervalChange = async (val) => {
+                    if (!autoSendEnabled.value) return;
+                    try {
+                        const response = await fetch('/api/auto-send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                enabled: true,
+                                interval: val,
+                                templateId: autoSendTemplateId.value,
+                                skipAlreadySent: autoSendSkipAlreadySent.value
+                            })
+                        });
+                        const result = await response.json();
+                        if (result.status === 'success') {
+                            ElementPlus.ElNotification({
+                                title: 'Intervalle auto-send mis à jour',
+                                message: `Vérification toutes les ${result.interval / 60} minutes`,
+                                type: 'success',
+                                duration: 2000
+                            });
+                        }
+                    } catch (error) {
+                        console.error(error);
+                    }
+                };
+
+                const onAutoSendTemplateChange = async (val) => {
+                    if (!autoSendEnabled.value) return;
+                    try {
+                        const response = await fetch('/api/auto-send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                enabled: true,
+                                interval: autoSendInterval.value,
+                                templateId: val,
+                                skipAlreadySent: autoSendSkipAlreadySent.value
+                            })
+                        });
+                        const result = await response.json();
+                        if (result.status === 'success') {
+                            ElementPlus.ElNotification({
+                                title: 'Modèle auto-send mis à jour',
+                                message: `Nouveau modèle enregistré pour l'envoi auto`,
+                                type: 'success',
+                                duration: 2000
+                            });
+                        }
+                    } catch (error) {
+                        console.error(error);
+                    }
+                };
+
+                const onAutoSendSkipChange = async (val) => {
+                    if (!autoSendEnabled.value) return;
+                    try {
+                        const response = await fetch('/api/auto-send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                enabled: true,
+                                interval: autoSendInterval.value,
+                                templateId: autoSendTemplateId.value,
+                                skipAlreadySent: val
+                            })
+                        });
+                        const result = await response.json();
+                        if (result.status === 'success') {
+                            ElementPlus.ElNotification({
+                                title: 'Option doublons mise à jour',
+                                message: val ? `Les doublons d'envoi seront évités` : `Tous les candidats seront recontactés`,
+                                type: 'success',
+                                duration: 2000
+                            });
+                        }
+                    } catch (error) {
+                        console.error(error);
+                    }
+                };
+
+                const loadAutoSendStatus = async () => {
+                    try {
+                        const response = await fetch('/api/auto-send');
+                        const result = await response.json();
+                        if (result.status === 'success') {
+                            autoSendEnabled.value = result.enabled;
+                            if (result.interval > 0) {
+                                autoSendInterval.value = result.interval / 60;
+                            }
+                            autoSendTemplateId.value = result.templateId || (templates.value.length > 0 ? templates.value[0].id : '');
+                            autoSendSkipAlreadySent.value = result.skipAlreadySent !== false;
+                            autoSendSchedule.value = Array.isArray(result.schedule) ? result.schedule : [];
+                            // Populate map so picker v-model has correct initial values
+                            autoSendSchedule.value.forEach(slot => {
+                                scheduleTimeMap[slot.day] = slot.time;
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Erreur chargement auto-send:', error);
+                    }
+                };
+
+                // ── Schedule helpers ──────────────────────────────
+                // isScheduled: checks if a day has an active slot
+                const isScheduled = (day) => autoSendSchedule.value.some(s => s.day === day);
+
+                // toggleScheduleDay: check/uncheck a day
+                const toggleScheduleDay = (day, checked) => {
+                    if (checked) {
+                        if (!isScheduled(day)) {
+                            // Initialize map entry with existing time or default
+                            if (!scheduleTimeMap[day]) {
+                                scheduleTimeMap[day] = '09:00';
+                            }
+                            autoSendSchedule.value.push({ day, time: scheduleTimeMap[day] });
+                        }
+                    } else {
+                        autoSendSchedule.value = autoSendSchedule.value.filter(s => s.day !== day);
+                        // Don't delete from map — preserves last chosen time if re-checked
+                    }
+                };
+
+                // setScheduleTime: kept for summary tag display sync
+                const setScheduleTime = (day, time) => {
+                    if (!time) return;
+                    scheduleTimeMap[day] = time;
+                    const idx = autoSendSchedule.value.findIndex(s => s.day === day);
+                    if (idx >= 0) {
+                        autoSendSchedule.value.splice(idx, 1, { day, time });
+                    }
+                };
+
+                // getScheduleTime: fallback for display (not used by picker v-model)
+                const getScheduleTime = (day) => scheduleTimeMap[day] || '09:00';
+
+                const removeScheduleSlot = (slot) => {
+                    autoSendSchedule.value = autoSendSchedule.value.filter(
+                        s => !(s.day === slot.day && s.time === slot.time)
+                    );
+                };
+
+                const getDayLabel = (key) => {
+                    const d = weekDays.find(w => w.key === key);
+                    return d ? d.label : key;
+                };
+
+                const saveAutoSendSchedule = async () => {
+                    if (isSavingAutoSend.value) return;
+                    isSavingAutoSend.value = true;
+                    // Build final schedule from scheduleTimeMap (picker v-model source)
+                    const finalSchedule = autoSendSchedule.value.map(slot => ({
+                        day: slot.day,
+                        time: scheduleTimeMap[slot.day] || slot.time
+                    }));
+                    try {
+                        const response = await fetch('/api/auto-send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                enabled: autoSendEnabled.value,
+                                interval: autoSendInterval.value,
+                                templateId: autoSendTemplateId.value,
+                                skipAlreadySent: autoSendSkipAlreadySent.value,
+                                schedule: finalSchedule
+                            })
+                        });
+                        const result = await response.json();
+                        if (result.status === 'success') {
+                            // Sync autoSendSchedule with finalized values
+                            autoSendSchedule.value = finalSchedule;
+                            ElementPlus.ElNotification({
+                                title: 'Planification enregistrée',
+                                message: `${finalSchedule.length} créneau(x) configuré(s)`,
+                                type: 'success',
+                                duration: 3000
+                            });
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        ElementPlus.ElMessage.error('Erreur lors de la sauvegarde');
+                    } finally {
+                        isSavingAutoSend.value = false;
+                    }
+                };
+
+
+                const testServerTime = async () => {
+                    testingTime.value = true;
+                    try {
+                        const response = await fetch('/api/server-time');
+                        const result = await response.json();
+                        if (result.status === 'success') {
+                            const utcSign = result.utcOffset >= 0 ? '+' : '';
+                            ElementPlus.ElNotification({
+                                title: 'Heure du serveur détectée',
+                                message: `⏰ ${result.time} (${result.timezone}, UTC${utcSign}${result.utcOffset})`,
+                                type: 'success',
+                                duration: 5000
+                            });
+                        }
+                    } catch (error) {
+                        ElementPlus.ElMessage.error('Impossible de joindre le serveur');
+                    } finally {
+                        testingTime.value = false;
+                    }
+                };
+
                 const handleSaveSettings = async () => {
                     if (isSaving.value) return;
                     isSaving.value = true;
@@ -1726,6 +2227,7 @@
                 let pollInterval = null;
                 onMounted(() => {
                     loadAutoSyncStatus();
+                    loadAutoSendStatus();
                     refreshData();
                     // Set up interval polling every 15 seconds to fetch new sync replies and updates
                     pollInterval = setInterval(refreshData, 15000);
@@ -1739,6 +2241,7 @@
 
                 return {
                     activeTab,
+                    activeSettingsSubTab,
                     candidates,
                     searchQuery,
                     statusFilter,
@@ -1804,7 +2307,28 @@
                     autoSyncEnabled,
                     autoSyncInterval,
                     toggleAutoSync,
-                    onAutoSyncIntervalChange
+                    onAutoSyncIntervalChange,
+                    autoSendEnabled,
+                    autoSendInterval,
+                    autoSendTemplateId,
+                    autoSendSkipAlreadySent,
+                    autoSendSchedule,
+                    scheduleTimeMap,
+                    isSavingAutoSend,
+                    testingTime,
+                    weekDays,
+                    toggleAutoSend,
+                    onAutoSendIntervalChange,
+                    onAutoSendTemplateChange,
+                    onAutoSendSkipChange,
+                    isScheduled,
+                    getScheduleTime,
+                    toggleScheduleDay,
+                    setScheduleTime,
+                    removeScheduleSlot,
+                    getDayLabel,
+                    saveAutoSendSchedule,
+                    testServerTime,
                 };
             }
         };

@@ -1,0 +1,12 @@
+{
+  "enabled": true,
+  "interval": 86400,
+  "templateId": "Default-TXT",
+  "skipAlreadySent": false,
+  "schedule": [
+    {
+      "day": "monday",
+      "time": "18:52"
+    }
+  ]
+}

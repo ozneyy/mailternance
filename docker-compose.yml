@@ -22,6 +22,8 @@ services:
       - ./replies.json:/app/replies.json
       - ./settings.json:/app/settings.json
       - ./templates.json:/app/templates.json
+      - ./autosync.json:/app/autosync.json
+      - ./autosend.json:/app/autosend.json
       # Pièces jointes (CV, etc.)
       - ./web/attachments:/app/web/attachments
       # Logs de l'application

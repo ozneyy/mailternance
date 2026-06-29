@@ -130,3 +130,18 @@ type AutoSyncConfig struct {
 	Enabled  bool `json:"enabled"`
 	Interval int  `json:"interval"` // en secondes
 }
+
+// ScheduleSlot représente un créneau d'envoi hebdomadaire (jour + heure)
+type ScheduleSlot struct {
+	Day  string `json:"day"`  // "monday", "tuesday", ..., "sunday"
+	Time string `json:"time"` // "HH:MM" en heure locale du serveur
+}
+
+// AutoSendConfig représente la configuration d'envoi automatique de campagnes
+type AutoSendConfig struct {
+	Enabled         bool           `json:"enabled"`
+	Interval        int            `json:"interval"` // legacy, en secondes
+	TemplateID      string         `json:"templateId"`
+	SkipAlreadySent bool           `json:"skipAlreadySent"`
+	Schedule        []ScheduleSlot `json:"schedule"` // créneaux hebdomadaires
+}

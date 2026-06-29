@@ -177,3 +177,31 @@ func SaveAutoSync(c templates.AutoSyncConfig) error {
 	return encoder.Encode(c)
 }
 
+// LoadAutoSend charge la configuration d'envoi automatique
+func LoadAutoSend() templates.AutoSendConfig {
+	var c templates.AutoSendConfig
+	c.Enabled = false
+	c.Interval = 3600 // 60 minutes par défaut (3600 secondes)
+	c.TemplateID = ""
+	c.SkipAlreadySent = true
+
+	file, err := os.Open("autosend.json")
+	if err == nil {
+		defer file.Close()
+		json.NewDecoder(file).Decode(&c)
+	}
+	return c
+}
+
+// SaveAutoSend enregistre la configuration d'envoi automatique
+func SaveAutoSend(c templates.AutoSendConfig) error {
+	file, err := os.Create("autosend.json")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(c)
+}
+
