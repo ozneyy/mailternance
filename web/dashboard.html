@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mailsender - Suivi des Candidatures</title>
+    <!-- Element Plus Stylesheets -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css" />
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/theme-chalk/dark/css-vars.css" />
+    <link rel="stylesheet" href="/web/style.css" />
+</head>
+<body>
+
+    <div id="app">
+        <el-container class="layout-container">
+            
+            <!-- Sidebar Navigation -->
+            <el-aside width="240px">
+                <div class="aside-menu">
+                    <div class="brand-section">
+                        <el-avatar :size="32" style="background-color: var(--el-color-primary);">
+                            <el-icon><Promotion /></el-icon>
+                        </el-avatar>
+                        <h2 class="brand-title">Mailsender</h2>
+                    </div>
+
+                    <el-menu
+                        :default-active="activeTab"
+                        class="menu-list"
+                        @select="handleMenuSelect"
+                    >
+                        <el-menu-item index="tracker">
+                            <el-icon><List /></el-icon>
+                            <span>Suivi Alternance</span>
+                        </el-menu-item>
+                        <el-menu-item index="recipients">
+                            <el-icon><User /></el-icon>
+                            <span>Destinataires (CSV)</span>
+                        </el-menu-item>
+                        <el-menu-item index="config">
+                            <el-icon><Setting /></el-icon>
+                            <span>Modèle & Pièces Jointes</span>
+                        </el-menu-item>
+                        <el-menu-item index="env">
+                            <el-icon><Lock /></el-icon>
+                            <span>Configuration .env</span>
+                        </el-menu-item>
+                    </el-menu>
+
+                    <div class="sync-section">
+                        <el-button 
+                            type="success"
+                            style="width: 100%; height: 40px; font-weight: bold;"
+                            @click="triggerSendCampaign"
+                            :disabled="sendProgress.inProgress"
+                        >
+                            <el-icon style="margin-right: 6px;"><PaperClip /></el-icon>
+                            Envoyer les candidatures
+                        </el-button>
+
+                        <el-button 
+                            type="primary" 
+                            style="width: 100%; margin-left: 0;" 
+                            :loading="isSyncing" 
+                            @click="handleSync"
+                        >
+                            <el-icon style="margin-right: 6px;"><Refresh /></el-icon>
+                            Synchroniser Gmail
+                        </el-button>
+                    </div>
+                </div>
+            </el-aside>
+
+            <!-- Main Workspace Container -->
+            <el-container>
+                
+                <!-- Top Header Bar -->
+                <el-header class="header-bar">
+                    <h1 class="header-title">
+                        {[ activeTab === 'tracker' ? 'Suivi des Candidatures' : activeTab === 'config' ? 'Configuration de l\'envoi (Texte Brut)' : 'Paramètres d\'environnement (.env)' ]}
+                    </h1>
+                </el-header>
+
+                <!-- Workspace Body -->
+                <el-main class="main-workspace">
+                    
+                    <!-- View 1: Tracker -->
+                    <div v-if="activeTab === 'tracker'" style="display: flex; flex-direction: column; gap: 20px; flex-grow: 1;">
+                        <!-- Stats Grid -->
+                        <el-row :gutter="20" class="stats-row">
+                            <el-col :span="6">
+                                <el-card shadow="hover">
+                                    <div class="stat-card-inner">
+                                        <el-statistic :value="totalSent" title="Candidatures envoyées" />
+                                        <div class="stat-icon-wrapper">
+                                            <el-icon><Message /></el-icon>
+                                        </div>
+                                    </div>
+                                </el-card>
+                            </el-col>
+                            
+                            <el-col :span="6">
+                                <el-card shadow="hover">
+                                    <div class="stat-card-inner">
+                                        <el-statistic :value="totalReplies" title="Réponses reçues" />
+                                        <div class="stat-icon-wrapper" style="color: var(--el-color-success);">
+                                            <el-icon><ChatLineRound /></el-icon>
+                                        </div>
+                                    </div>
+                                </el-card>
+                            </el-col>
+
+                            <el-col :span="6">
+                                <el-card shadow="hover">
+                                    <div class="stat-card-inner">
+                                        <el-statistic :value="totalWaiting" title="En attente de retour" />
+                                        <div class="stat-icon-wrapper" style="color: var(--el-color-warning);">
+                                            <el-icon><Clock /></el-icon>
+                                        </div>
+                                    </div>
+                                </el-card>
+                            </el-col>
+
+                            <el-col :span="6">
+                                <el-card shadow="hover">
+                                    <div class="stat-card-inner">
+                                        <el-statistic :value="replyRate" suffix="%" title="Taux de retour" />
+                                        <div class="stat-icon-wrapper" style="color: var(--el-color-danger);">
+                                            <el-icon><PieChart /></el-icon>
+                                        </div>
+                                    </div>
+                                </el-card>
+                            </el-col>
+                        </el-row>
+
+                        <!-- Table Card -->
+                        <el-card style="flex-grow: 1; display: flex; flex-direction: column;" shadow="never" class="table-card">
+                            
+                            <!-- Toolbar -->
+                            <div class="table-toolbar">
+                                <el-input
+                                    v-model="searchQuery"
+                                    placeholder="Rechercher une entreprise..."
+                                    style="width: 280px;"
+                                    clearable
+                                >
+                                    <template #prefix>
+                                        <el-icon><Search /></el-icon>
+                                    </template>
+                                </el-input>
+
+                                <el-radio-group v-model="statusFilter">
+                                    <el-radio-button label="all">Tous</el-radio-button>
+                                    <el-radio-button label="waiting">En attente</el-radio-button>
+                                    <el-radio-button label="replied">Réponses</el-radio-button>
+                                </el-radio-group>
+                            </div>
+
+                            <!-- Data Table -->
+                            <el-table
+                                :data="filteredCandidates"
+                                style="width: 100%;"
+                                @row-click="handleRowClick"
+                                v-loading="loadingTable"
+                                highlight-current-row
+                            >
+                                <el-table-column label="Recruteur / Entreprise" min-width="180">
+                                    <template #default="scope">
+                                        <div class="candidate-cell">
+                                            <el-avatar 
+                                                :size="32"
+                                                :type="scope.row.HasReply ? 'success' : 'info'"
+                                            >
+                                                {[ (scope.row.FirstName || scope.row.LastName) ? ((scope.row.FirstName ? scope.row.FirstName[0] : '') + (scope.row.LastName ? scope.row.LastName[0] : '')) : scope.row.Email.slice(0, 2).toUpperCase() ]}
+                                            </el-avatar>
+                                            <div class="candidate-text">
+                                                <span class="candidate-name">{[ (scope.row.FirstName || scope.row.LastName) ? (scope.row.FirstName + ' ' + scope.row.LastName).trim() : scope.row.Email ]}</span>
+                                                <span class="candidate-company">{[ scope.row.Company || '-' ]}</span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </el-table-column>
+
+                                <el-table-column prop="Email" label="Adresse E-mail" min-width="180" />
+
+                                <el-table-column label="Statut" width="130">
+                                    <template #default="scope">
+                                        <el-tag :type="scope.row.HasReply ? 'success' : 'warning'" round effect="flat">
+                                            {[ scope.row.HasReply ? (scope.row.ReplyCount > 1 ? scope.row.ReplyCount + ' réponses' : 'Réponse reçue') : 'En attente' ]}
+                                        </el-tag>
+                                    </template>
+                                </el-table-column>
+
+                                <el-table-column label="Aperçu / Interaction" min-width="260">
+                                    <template #default="scope">
+                                        <div class="message-preview">
+                                            <span v-if="scope.row.HasReply">
+                                                <strong>{[ scope.row.ReplySubject ]}</strong> - {[ scope.row.ReplySnippet ]}
+                                                <span v-if="scope.row.ReplyCount > 1" style="color: var(--el-color-success); font-weight: 600; margin-left: 4px;">(+{[ scope.row.ReplyCount - 1 ]} autre{[ scope.row.ReplyCount > 2 ? 's' : '' ]})</span>
+                                            </span>
+                                            <span v-else style="color: var(--el-text-color-secondary);">
+                                                Aucune réponse, relance en attente.
+                                            </span>
+                                        </div>
+                                    </template>
+                                </el-table-column>
+
+                                <el-table-column label="Actions" width="90" align="center">
+                                    <template #default="scope">
+                                        <el-popconfirm
+                                            title="Supprimer ce contact et son historique ?"
+                                            confirm-button-text="Oui"
+                                            cancel-button-text="Non"
+                                            @confirm="handleDeleteCandidate(scope.row)"
+                                        >
+                                            <template #reference>
+                                                <el-button
+                                                    type="danger"
+                                                    size="small"
+                                                    circle
+                                                    @click.stop
+                                                >
+                                                    <el-icon><Delete /></el-icon>
+                                                </el-button>
+                                            </template>
+                                        </el-popconfirm>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+
+                        </el-card>
+                    </div>
+
+                    <!-- View 2: Modèle & Pièces Jointes Config -->
+                    <div v-if="activeTab === 'config'">
+                        <el-row :gutter="20">
+                            <!-- Left form config (Multiple Templates Manager) -->
+                            <el-col :span="13">
+                                <el-card class="config-card" shadow="never" header="Gestion des Modèles d'E-mails">
+                                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                                        
+                                        <!-- Model selector and actions -->
+                                        <div style="display: flex; gap: 12px; align-items: center;">
+                                            <el-select v-model="selectedTemplateId" placeholder="Choisir un modèle" style="flex-grow: 1;">
+                                                <el-option 
+                                                    v-for="t in templates" 
+                                                    :key="t.id" 
+                                                    :label="t.name + ' (' + t.type.toUpperCase() + ')'" 
+                                                    :value="t.id" 
+                                                />
+                                            </el-select>
+                                            
+                                            <el-button type="success" @click="handleCreateTemplate">
+                                                <el-icon><Plus /></el-icon> Nouveau
+                                            </el-button>
+                                            
+                                            <el-button 
+                                                type="danger" 
+                                                :disabled="templates.length <= 1"
+                                                @click="handleDeleteTemplate"
+                                            >
+                                                <el-icon><Delete /></el-icon>
+                                            </el-button>
+                                        </div>
+
+                                        <!-- Edit Active Template Form -->
+                                        <el-form label-position="top" v-if="activeTemplate">
+                                            <el-form-item label="Nom du modèle">
+                                                <el-input v-model="activeTemplate.name" placeholder="Ex: Relance Candidature" />
+                                            </el-form-item>
+
+                                            <el-form-item label="Type de message">
+                                                <el-radio-group v-model="activeTemplate.type">
+                                                    <el-radio-button label="txt">Texte brut</el-radio-button>
+                                                    <el-radio-button label="html">HTML</el-radio-button>
+                                                </el-radio-group>
+                                            </el-form-item>
+
+                                            <el-form-item label="Objet du mail">
+                                                <el-input v-model="activeTemplate.subject" placeholder="Ex: Candidature Alternance - [Votre Nom]" />
+                                            </el-form-item>
+
+                                            <el-form-item :label="activeTemplate.type === 'html' ? 'Corps du mail (HTML)' : 'Corps du mail (Texte Brut)'">
+                                                <!-- Variables Insert Toolbar -->
+                                                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                                                    <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('FirstName')">
+                                                        <el-icon style="margin-right: 4px;"><User /></el-icon> Prénom
+                                                    </el-button>
+                                                    <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('LastName')">
+                                                        <el-icon style="margin-right: 4px;"><User /></el-icon> Nom
+                                                    </el-button>
+                                                    <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('Company')">
+                                                        <el-icon style="margin-right: 4px;"><OfficeBuilding /></el-icon> Entreprise
+                                                    </el-button>
+                                                    <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('Position')">
+                                                        <el-icon style="margin-right: 4px;"><Briefcase /></el-icon> Poste
+                                                    </el-button>
+                                                    <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('SenderName')">
+                                                        <el-icon style="margin-right: 4px;"><Avatar /></el-icon> Votre Nom
+                                                    </el-button>
+
+                                                    <el-dropdown trigger="click">
+                                                        <el-button size="small" type="warning" plain>
+                                                            <el-icon style="margin-right: 4px;"><Link /></el-icon> Insérer lien... <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                                                        </el-button>
+                                                        <template #dropdown>
+                                                            <el-dropdown-menu>
+                                                                <el-dropdown-item v-if="settings.links.length === 0" disabled>
+                                                                    Aucun lien configuré
+                                                                </el-dropdown-item>
+                                                                <el-dropdown-item
+                                                                    v-for="l in settings.links"
+                                                                    :key="l.key"
+                                                                    @mousedown.prevent="insertVariable('link_' + l.key)"
+                                                                >
+                                                                    {[ l.label ]} ({[ getLinkVariable(l.key) ]})
+                                                                </el-dropdown-item>
+                                                            </el-dropdown-menu>
+                                                        </template>
+                                                    </el-dropdown>
+
+                                                    <el-button size="small" type="info" plain @click="showVariablesHelp = true">
+                                                        <el-icon style="margin-right: 4px;"><QuestionFilled /></el-icon> Aide variables
+                                                    </el-button>
+                                                </div>
+
+                                                <el-input 
+                                                    id="bodyTextarea"
+                                                    v-model="activeTemplate.body" 
+                                                    type="textarea" 
+                                                    :rows="12" 
+                                                    :placeholder="activeTemplate.type === 'html' ? 'Saisissez votre code HTML...' : 'Saisissez votre texte...'" 
+                                                    @keyup="updateCaret"
+                                                    @click="updateCaret"
+                                                    @select="updateCaret"
+                                                />
+                                                <div style="margin-top: 6px; font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.5;">
+                                                    Astuce : Vous pouvez injecter des variables de fusion issues de votre CSV : 
+                                                    <code>{[ varsHelp.FirstName ]}</code>, <code>{[ varsHelp.LastName ]}</code>, <code>{[ varsHelp.Company ]}</code>.<br>
+                                                    Pour les liens personnalisés, utilisez la syntaxe <code>{[ varsHelp.LinksVotreClef ]}</code> (ex: <code>{[ varsHelp.LinksPortfolio ]}</code>).
+                                                </div>
+                                            </el-form-item>
+
+                                            <!-- Legacy PortfolioURL field hidden but maintained for links compatibility -->
+                                            <el-form-item label="Lien du Portfolio (variable héritée {.PortfolioURL})" style="margin-top: 10px;">
+                                                <el-input v-model="settings.portfolioUrl" placeholder="Ex: https://monportfolio.com" />
+                                            </el-form-item>
+
+                                            <el-form-item>
+                                                <el-button type="primary" :loading="isSaving" @click="handleSaveSettings">
+                                                    <el-icon style="margin-right: 6px;"><Check /></el-icon>
+                                                    Sauvegarder les Modèles & Paramètres
+                                                </el-button>
+                                            </el-form-item>
+                                        </el-form>
+                                    </div>
+                                </el-card>
+                            </el-col>
+
+                            <!-- Right uploader (Attachments Manager) -->
+                            <el-col :span="11">
+                                <el-card class="config-card" shadow="never" header="Pièces Jointes jointes au modèle">
+                                    <div style="display: flex; flex-direction: column; gap: 20px;">
+                                        
+                                        <!-- Files table -->
+                                        <el-table 
+                                            :data="attachmentsList" 
+                                            style="width: 100%" 
+                                            size="default"
+                                            empty-text="Aucune pièce jointe. Les e-mails seront envoyés sans document joint."
+                                        >
+                                            <el-table-column label="Nom du fichier de candidature">
+                                                <template #default="scope">
+                                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                                        <el-icon><Document /></el-icon>
+                                                        <span>{[ scope.row ]}</span>
+                                                    </div>
+                                                </template>
+                                            </el-table-column>
+                                            
+                                            <el-table-column width="70" align="center">
+                                                <template #default="scope">
+                                                    <el-button
+                                                        type="danger"
+                                                        size="small"
+                                                        circle
+                                                        @click="handleDeleteAttachment(scope.row)"
+                                                    >
+                                                        <el-icon><Delete /></el-icon>
+                                                    </el-button>
+                                                </template>
+                                            </el-table-column>
+                                        </el-table>
+
+                                        <!-- Upload area -->
+                                        <el-upload
+                                            class="upload-demo"
+                                            drag
+                                            action="/upload-attachment"
+                                            name="file"
+                                            :on-success="handleUploadSuccess"
+                                            :on-error="handleUploadError"
+                                            multiple
+                                            :show-file-list="false"
+                                        >
+                                            <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+                                            <div class="el-upload__text">
+                                                Glissez vos documents de candidature ici (CV, lettre...) ou <em>cliquez pour charger</em>
+                                            </div>
+                                            <template #tip>
+                                                <div class="el-upload__tip" style="text-align: center;">
+                                                    Formats acceptés : PDF, PNG, JPG... (Max 10 Mo par document)
+                                                </div>
+                                            </template>
+                                        </el-upload>
+                                    </div>
+                                </el-card>
+
+                                <!-- Custom Links Manager Card -->
+                                <el-card class="config-card" shadow="never" header="Gestion des Liens" style="margin-top: 20px;">
+                                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                                        <div style="font-size: 13px; color: var(--el-text-color-regular);">
+                                            Configurez des liens nommés cliquables utilisables dans vos modèles.
+                                        </div>
+
+                                        <!-- Links Table -->
+                                        <el-table 
+                                            :data="settings.links" 
+                                            style="width: 100%" 
+                                            size="small"
+                                            empty-text="Aucun lien personnalisé."
+                                        >
+                                            <el-table-column label="Variable" width="165">
+                                                <template #default="scope">
+                                                    <code>{[ getLinkVariable(scope.row.key) ]}</code>
+                                                </template>
+                                            </el-table-column>
+                                            <el-table-column label="Texte" prop="label" width="100" />
+                                            <el-table-column label="URL" prop="url" show-overflow-tooltip />
+                                            <el-table-column width="60" align="center">
+                                                <template #default="scope">
+                                                    <el-button
+                                                        type="danger"
+                                                        size="small"
+                                                        circle
+                                                        @click="handleRemoveLink(scope.$index)"
+                                                    >
+                                                        <el-icon><Delete /></el-icon>
+                                                    </el-button>
+                                                </template>
+                                            </el-table-column>
+                                        </el-table>
+
+                                        <!-- Add Link Form -->
+                                        <div style="border-top: 1px solid var(--el-border-color-light); padding-top: 16px;">
+                                            <h5 style="margin: 0 0 12px 0; font-size: 13px; font-weight: 600;">Ajouter un nouveau lien</h5>
+                                            <el-form label-position="top" size="small">
+                                                <el-row :gutter="10">
+                                                    <el-col :span="8">
+                                                        <el-form-item label="Clef (sans espace)" style="margin-bottom: 8px;">
+                                                            <el-input v-model="newLinkKey" placeholder="Ex: Portfolio" />
+                                                        </el-form-item>
+                                                    </el-col>
+                                                    <el-col :span="16">
+                                                        <el-form-item label="Texte cliquable" style="margin-bottom: 8px;">
+                                                            <el-input v-model="newLinkLabel" placeholder="Ex: Consulter mon Portfolio" />
+                                                        </el-form-item>
+                                                    </el-col>
+                                                </el-row>
+                                                <el-form-item label="URL de redirection" style="margin-bottom: 12px;">
+                                                    <el-input v-model="newLinkUrl" placeholder="Ex: https://monportfolio.com" />
+                                                </el-form-item>
+                                                <el-button type="success" size="small" style="width: 100%;" @click="handleAddLink">
+                                                    <el-icon style="margin-right: 4px;"><Plus /></el-icon>
+                                                    Ajouter le lien
+                                                </el-button>
+                                            </el-form>
+                                        </div>
+                                    </div>
+                                </el-card>
+                            </el-col>
+                        </el-row>
+                    </div>
+
+                    <!-- View 4: Destinataires CSV Editor -->
+                    <div v-if="activeTab === 'recipients'">
+                        <el-card class="config-card" shadow="never">
+                            <template #header>
+                                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                    <h3 style="margin: 0; font-size: 16px; color: var(--el-text-color-primary);">Éditeur de Destinataires (CSV)</h3>
+                                    <div style="display: flex; gap: 12px;">
+                                        <el-button type="success" @click="handleAddRecipientRow">
+                                            <el-icon style="margin-right: 4px;"><Plus /></el-icon>
+                                            Ajouter un contact
+                                        </el-button>
+                                        <el-button type="primary" :loading="isSavingCSV" @click="handleSaveCSV">
+                                            <el-icon style="margin-right: 4px;"><Check /></el-icon>
+                                            Enregistrer les modifications
+                                        </el-button>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <div style="font-size: 13px; color: var(--el-text-color-regular); margin-bottom: 16px; line-height: 1.5;">
+                                Modifiez les informations de vos destinataires ci-dessous. Les modifications seront écrites directement dans le fichier <code>recipients.csv</code>.
+                            </div>
+
+                            <el-table 
+                                :data="editableCandidates" 
+                                style="width: 100%;" 
+                                max-height="550"
+                                empty-text="Aucun destinataire. Cliquez sur 'Ajouter un contact' pour commencer."
+                            >
+                                <el-table-column label="#" type="index" width="50" align="center" />
+                                
+                                <el-table-column label="Adresse E-mail" min-width="180">
+                                    <template #default="scope">
+                                        <el-input 
+                                            v-model="scope.row.Email" 
+                                            placeholder="recruteur@entreprise.com" 
+                                            size="default" 
+                                        />
+                                    </template>
+                                </el-table-column>
+
+                                <el-table-column label="Nom" min-width="120">
+                                    <template #default="scope">
+                                        <el-input 
+                                            v-model="scope.row.LastName" 
+                                            placeholder="Ex: Dupont" 
+                                            size="default" 
+                                        />
+                                    </template>
+                                </el-table-column>
+
+                                <el-table-column label="Prénom" min-width="120">
+                                    <template #default="scope">
+                                        <el-input 
+                                            v-model="scope.row.FirstName" 
+                                            placeholder="Ex: Jean" 
+                                            size="default" 
+                                        />
+                                    </template>
+                                </el-table-column>
+
+                                <el-table-column label="Entreprise" min-width="150">
+                                    <template #default="scope">
+                                        <el-input 
+                                            v-model="scope.row.Company" 
+                                            placeholder="Ex: Google" 
+                                            size="default" 
+                                        />
+                                    </template>
+                                </el-table-column>
+
+                                <el-table-column label="Poste (ex: RH)" min-width="130">
+                                    <template #default="scope">
+                                        <el-input 
+                                            v-model="scope.row.Position" 
+                                            placeholder="Ex: RH" 
+                                            size="default" 
+                                        />
+                                    </template>
+                                </el-table-column>
+
+                                <el-table-column width="70" align="center">
+                                    <template #default="scope">
+                                        <el-button
+                                            type="danger"
+                                            size="small"
+                                            circle
+                                            @click="handleRemoveRecipientRow(scope.$index)"
+                                        >
+                                            <el-icon><Delete /></el-icon>
+                                        </el-button>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+                        </el-card>
+                    </div>
+
+                    <!-- View 3: Configuration .env -->
+                    <div v-if="activeTab === 'env'">
+                        <el-row :gutter="20">
+                            <el-col :span="16">
+                                <el-card class="config-card" shadow="never" header="Paramètres du Fichier d'environnement (.env)">
+                                    <el-form label-position="top">
+                                        <el-row :gutter="20">
+                                            <el-col :span="12">
+                                                <el-form-item label="Serveur SMTP (Envoi)">
+                                                    <el-input v-model="envVars.smtpHost" placeholder="smtp.gmail.com" />
+                                                </el-form-item>
+                                            </el-col>
+                                            <el-col :span="12">
+                                                <el-form-item label="Port SMTP">
+                                                    <el-input v-model="envVars.smtpPort" placeholder="587" />
+                                                </el-form-item>
+                                            </el-col>
+                                        </el-row>
+
+                                        <el-row :gutter="20">
+                                            <el-col :span="12">
+                                                <el-form-item label="Serveur IMAP (Réception/Suivi)">
+                                                    <el-input v-model="envVars.imapHost" placeholder="imap.gmail.com" />
+                                                </el-form-item>
+                                            </el-col>
+                                            <el-col :span="12">
+                                                <el-form-item label="Port IMAP">
+                                                    <el-input v-model="envVars.imapPort" placeholder="993" />
+                                                </el-form-item>
+                                            </el-col>
+                                        </el-row>
+
+                                        <el-row :gutter="20">
+                                            <el-col :span="12">
+                                                <el-form-item label="Votre adresse e-mail Gmail">
+                                                    <el-input v-model="envVars.smtpEmail" placeholder="votre.email@gmail.com" />
+                                                </el-form-item>
+                                            </el-col>
+                                            <el-col :span="12">
+                                                <el-form-item label="Mot de passe d'application Google">
+                                                    <el-input 
+                                                        v-model="envVars.smtpPassword" 
+                                                        type="password" 
+                                                        show-password
+                                                        placeholder="abcd efgh ijkl mnop" 
+                                                    />
+                                                </el-form-item>
+                                            </el-col>
+                                        </el-row>
+
+                                        <el-row :gutter="20">
+                                            <el-col :span="12">
+                                                <el-form-item label="Nom d'expéditeur affiché">
+                                                    <el-input v-model="envVars.senderName" placeholder="Ex: Jean Dupont" />
+                                                </el-form-item>
+                                            </el-col>
+                                            <el-col :span="12">
+                                                <el-form-item label="Délai entre envois (ms)">
+                                                    <el-input v-model="envVars.sendDelayMs" placeholder="1500" />
+                                                </el-form-item>
+                                            </el-col>
+                                        </el-row>
+
+                                        <el-row :gutter="20">
+                                            <el-col :span="12">
+                                                <el-form-item label="Port du Serveur Web local (Requiert un redémarrage pour changer de port)">
+                                                    <el-input v-model="envVars.port" placeholder="8080" />
+                                                </el-form-item>
+                                            </el-col>
+                                        </el-row>
+
+                                        <el-form-item>
+                                            <el-button type="primary" :loading="isSavingEnv" @click="handleSaveEnv">
+                                                <el-icon style="margin-right: 6px;"><Check /></el-icon>
+                                                Mettre à jour la configuration (.env)
+                                            </el-button>
+                                        </el-form-item>
+                                    </el-form>
+                                </el-card>
+                            </el-col>
+
+                            <el-col :span="8">
+                                <el-card class="config-card" shadow="never" header="Explications">
+                                    <div style="font-size: 13px; line-height: 1.6; color: var(--el-text-color-regular);">
+                                        <p style="margin-bottom: 12px;"><strong>À propos du fichier .env :</strong></p>
+                                        <p style="margin-bottom: 12px;">Ces paramètres sont stockés localement dans le fichier caché <code>.env</code> situé à la racine du projet.</p>
+                                        <p style="margin-bottom: 12px;">En enregistrant les modifications, le serveur met à jour le fichier et applique <strong>immédiatement</strong> les nouveaux accès SMTP et IMAP sans nécessiter de redémarrage de l'application (sauf pour le port d'écoute HTTP).</p>
+                                        <p style="margin-bottom: 12px;"><strong style="color: var(--el-color-warning);">Validation en deux étapes Google :</strong> N'utilisez pas votre mot de passe Gmail standard. Créez un mot de passe d'application à 16 lettres dans l'interface de gestion de votre compte Google.</p>
+                                    </div>
+                                </el-card>
+                            </el-col>
+                        </el-row>
+                    </div>
+
+                </el-main>
+            </el-container>
+        </el-container>
+
+        <!-- Side Drawer Details -->
+        <el-drawer
+            v-model="drawerVisible"
+            size="540px"
+            destroy-on-close
+        >
+            <template #header>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <el-avatar :size="36" style="background-color: var(--el-color-primary);">
+                        {[ (activeCandidate.FirstName || activeCandidate.LastName) ? ((activeCandidate.FirstName ? activeCandidate.FirstName[0] : '') + (activeCandidate.LastName ? activeCandidate.LastName[0] : '')) : (activeCandidate.Email ? activeCandidate.Email.slice(0, 2).toUpperCase() : '') ]}
+                    </el-avatar>
+                    <div>
+                        <h3 style="margin: 0; font-size: 16px; color: var(--el-text-color-primary);">{[ (activeCandidate.FirstName || activeCandidate.LastName) ? (activeCandidate.FirstName + ' ' + activeCandidate.LastName).trim() : activeCandidate.Email ]}</h3>
+                        <span style="font-size: 12px; color: var(--el-text-color-secondary);">{[ activeCandidate.Email ]}</span>
+                    </div>
+                </div>
+            </template>
+
+            <div class="drawer-content">
+                <!-- Descriptions -->
+                <el-descriptions :column="1" border>
+                    <el-descriptions-item label="Entreprise">
+                        {[ activeCandidate.Company || '-' ]}
+                    </el-descriptions-item>
+                    <el-descriptions-item label="Poste / Rôle">
+                        {[ activeCandidate.Position || '-' ]}
+                    </el-descriptions-item>
+                    <el-descriptions-item label="Statut de réponse">
+                        <el-tag :type="activeCandidate.HasReply ? 'success' : 'warning'" size="small">
+                            {[ activeCandidate.HasReply ? 'Répondu' : 'En attente de retour' ]}
+                        </el-tag>
+                    </el-descriptions-item>
+                </el-descriptions>
+
+                <!-- Conversation History (fusionné chronologiquement) -->
+                <h4 style="margin: 10px 0 0 0; color: var(--el-text-color-primary); font-size: 14px;">Historique d'échanges</h4>
+
+                <el-timeline style="padding-left: 2px;">
+                    <!-- Fallback if no history at all -->
+                    <el-timeline-item
+                        v-if="mergedTimeline.length === 0"
+                        timestamp="Date d'envoi (historique indisponible)"
+                        placement="top"
+                        type="primary"
+                        :icon="PromotionIcon"
+                    >
+                        <el-card shadow="never">
+                            <div class="timeline-card-content">
+                                <strong>Bonjour{[ (activeCandidate.FirstName || activeCandidate.LastName) ? ' ' + (activeCandidate.FirstName + ' ' + activeCandidate.LastName).trim() + ',' : '' ]}</strong><br><br>
+                                Je me permets de vous adresser ma candidature pour l'offre d'alternance au sein de votre structure <strong>{[ activeCandidate.Company || 'entreprise' ]}</strong>.<br><br>
+                                Veuillez trouver mes documents de candidature joints à cet e-mail...
+                            </div>
+                        </el-card>
+                    </el-timeline-item>
+
+                    <!-- Merged chronological timeline -->
+                    <el-timeline-item
+                        v-for="(event, idx) in mergedTimeline"
+                        :key="'event_' + idx"
+                        :timestamp="event.date.toLocaleString('fr-FR')"
+                        placement="top"
+                        :type="event.type === 'sent' ? 'primary' : 'success'"
+                        :icon="event.type === 'sent' ? PromotionIcon : CheckIcon"
+                    >
+                        <!-- Sent event -->
+                        <el-card v-if="event.type === 'sent'" shadow="never">
+                            <div class="timeline-card-content">
+                                <strong>Objet :</strong> {[ event.subject ]}<br>
+                                <span style="font-size: 12px; color: var(--el-text-color-secondary);">E-mail envoyé avec succès.</span>
+                            </div>
+                        </el-card>
+
+                        <!-- Reply event -->
+                        <el-card v-else shadow="never" style="border-color: var(--el-color-success-light-8);">
+                            <template #header>
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <span style="font-weight: 600; color: var(--el-color-success);">Objet : {[ event.subject ]}</span>
+                                </div>
+                            </template>
+                            <div class="timeline-card-content reply-body-container">
+                                <div>{[ event.snippet ]}</div>
+                                <div v-if="event.body && event.body.length > 140" style="margin-top: 8px;">
+                                    <el-button size="small" type="primary" text @click="toggleReplyBody(event.replyIndex)">
+                                        {[ expandedReplies[event.replyIndex] ? 'Masquer le message complet' : 'Voir le message complet' ]}
+                                    </el-button>
+                                    <div v-if="expandedReplies[event.replyIndex]" style="margin-top: 10px; padding: 12px; background: var(--el-bg-color-page); border-radius: 6px; max-height: 400px; overflow: auto;">
+                                        <iframe
+                                            :srcdoc="event.body"
+                                            style="width: 100%; min-height: 200px; border: none; background: white; border-radius: 4px;"
+                                            sandbox="allow-same-origin"
+                                        ></iframe>
+                                    </div>
+                                </div>
+                            </div>
+                        </el-card>
+                    </el-timeline-item>
+
+                    <!-- Waiting tag if no replies -->
+                    <el-timeline-item
+                        v-if="!activeCandidate.ReplyHistory || activeCandidate.ReplyHistory.length === 0"
+                        timestamp="Attente"
+                        placement="top"
+                        type="info"
+                    >
+                        <el-empty description="Pas de réponse reçue" :image-size="40" style="padding: 10px;"></el-empty>
+                    </el-timeline-item>
+                </el-timeline>
+            </div>
+
+            <template #footer>
+                <div style="display: flex; gap: 12px; width: 100%;">
+                    <el-button 
+                        type="primary" 
+                        style="flex: 1;" 
+                        @click="handleMailto"
+                    >
+                        <el-icon style="margin-right: 4px;"><Message /></el-icon>
+                        Répondre par e-mail
+                    </el-button>
+                    <el-button @click="drawerVisible = false" style="flex: 1;">Fermer</el-button>
+                </div>
+            </template>
+        </el-drawer>
+
+        <!-- Confirm Send Campaign Dialog -->
+        <el-dialog
+            v-model="confirmSendDialogVisible"
+            title="Lancer la campagne d'envoi"
+            width="400px"
+        >
+            <div style="padding: 10px 0;">
+                <el-form label-position="top">
+                    <el-form-item label="Modèle d'e-mail à envoyer">
+                        <el-select v-model="sendTemplateId" placeholder="Choisir un modèle" style="width: 100%;">
+                            <el-option 
+                                v-for="t in templates" 
+                                :key="t.id" 
+                                :label="t.name + ' (' + t.type.toUpperCase() + ')'" 
+                                :value="t.id" 
+                            />
+                        </el-select>
+                    </el-form-item>
+                </el-form>
+                <div style="font-size: 13px; color: var(--el-text-color-regular); margin-top: 10px;">
+                    Cette action va envoyer des e-mails personnalisés à tous les contacts du fichier CSV.
+                </div>
+            </div>
+            <template #footer>
+                <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <el-button @click="confirmSendDialogVisible = false">Annuler</el-button>
+                    <el-button type="success" @click="startSendCampaign">
+                        <el-icon style="margin-right: 4px;"><Promotion /></el-icon> Confirmer et Envoyer
+                    </el-button>
+                </div>
+            </template>
+        </el-dialog>
+
+        <!-- Send Campaign Progress Dialog -->
+        <el-dialog
+            v-model="sendDialogVisible"
+            title="Campagne d'envoi de candidatures"
+            width="500px"
+            :close-on-click-modal="false"
+            :close-on-press-escape="false"
+            :show-close="!sendProgress.inProgress"
+        >
+            <div style="text-align: center; padding: 10px 0;">
+                <h4 style="margin-bottom: 12px;">Envoi en cours...</h4>
+                
+                <el-progress 
+                    :percentage="sendPercentage" 
+                    :status="sendProgress.failureCount > 0 ? 'warning' : sendPercentage === 100 ? 'success' : ''"
+                    :stroke-width="12"
+                    striped
+                    striped-flow
+                />
+                
+                <el-row :gutter="20" style="margin-top: 20px; font-weight: bold;">
+                    <el-col :span="8">
+                        <div style="color: var(--el-text-color-regular); font-size: 12px;">Total</div>
+                        <div style="font-size: 18px;">{[ sendProgress.total ]}</div>
+                    </el-col>
+                    <el-col :span="8">
+                        <div style="color: var(--el-color-success); font-size: 12px;">Succès</div>
+                        <div style="font-size: 18px; color: var(--el-color-success);">{[ sendProgress.successCount ]}</div>
+                    </el-col>
+                    <el-col :span="8">
+                        <div style="color: var(--el-color-danger); font-size: 12px;">Échecs</div>
+                        <div style="font-size: 18px; color: var(--el-color-danger);">{[ sendProgress.failureCount ]}</div>
+                    </el-col>
+                </el-row>
+
+                <el-scrollbar 
+                    height="160px" 
+                    class="terminal-box"
+                    ref="scrollbarRef"
+                >
+                    <div v-for="(logLine, idx) in logLines" :key="idx" style="margin-bottom: 6px; font-size: 13px; line-height: 1.4;">
+                        <el-text :type="getLogType(logLine)">{[ logLine ]}</el-text>
+                    </div>
+                </el-scrollbar>
+            </div>
+            
+            <template #footer>
+                <el-button 
+                    type="primary" 
+                    :disabled="sendProgress.inProgress" 
+                    @click="sendDialogVisible = false"
+                >
+                    Fermer
+                </el-button>
+            </template>
+        </el-dialog>
+
+        <!-- Variables Help Dialog -->
+        <el-dialog
+            v-model="showVariablesHelp"
+            title="Comment fonctionnent les variables de fusion ?"
+            width="550px"
+        >
+            <div style="line-height: 1.6; font-size: 14px;">
+                <p>Les variables de fusion vous permettent de personnaliser automatiquement le contenu de vos e-mails pour chaque destinataire de votre fichier CSV.</p>
+                
+                <h5 style="margin: 16px 0 8px 0; font-size: 14px; color: var(--el-text-color-primary);">Variables de contact</h5>
+                <ul>
+                    <li><code>{[ varsHelp.FirstName ]}</code> : Insère le prénom du destinataire.</li>
+                    <li><code>{[ varsHelp.LastName ]}</code> : Insère le nom du destinataire.</li>
+                    <li><code>{[ varsHelp.Company ]}</code> : Insère le nom de l'entreprise.</li>
+                    <li><code>{[ varsHelp.Position ]}</code> : Insère le poste du contact (ex: RH).</li>
+                    <li><code>{[ varsHelp.SenderName ]}</code> : Insère votre nom d'expéditeur configuré dans les paramètres.</li>
+                </ul>
+
+                <h5 style="margin: 16px 0 8px 0; font-size: 14px; color: var(--el-text-color-primary);">Variables de liens configurés</h5>
+                <p>Dans l'onglet de droite, vous pouvez créer des liens nommés (ex: Portfolio, Github). Pour les insérer :</p>
+                <ul>
+                    <li>Utilisez la syntaxe <code>{[ varsHelp.LinksVotreClef ]}</code> (ex: <code>{[ varsHelp.LinksPortfolio ]}</code>).</li>
+                    <li><strong>Dans un mail HTML</strong> : Cela générera automatiquement un lien hypertexte bleu et cliquable avec le texte du lien.</li>
+                    <li><strong>Dans un mail Texte brut</strong> : Cela affichera le texte du lien suivi de l'URL entre parenthèses.</li>
+                </ul>
+            </div>
+            <template #footer>
+                <el-button type="primary" @click="showVariablesHelp = false">Compris</el-button>
+            </template>
+        </el-dialog>
+
+    </div>
+
+    <!-- Script imports -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/element-plus"></script>
+    <script src="https://unpkg.com/@element-plus/icons-vue"></script>
+
+    <script>
+        // Data injected from Go template
+        const rawCandidates = {{.ItemsJSON}};
+        const rawReplies = {{.RepliesJSON}};
+        const rawSettings = {{.SettingsJSON}};
+        const rawTemplates = {{.TemplatesJSON}};
+        const rawAttachments = {{.AttachmentsJSON}};
+        const rawEnv = {{.EnvJSON}};
+
+        const { createApp, ref, computed, nextTick, shallowRef, watch } = Vue;
+
+        const App = {
+            compilerOptions: {
+                delimiters: ['{[', ']}'] // Override delimiters to avoid conflicts with Go template engine
+            },
+            setup() {
+                const activeTab = ref('tracker');
+
+                const candidates = ref(rawCandidates || []);
+                const replies = ref(rawReplies || []);
+                
+                const searchQuery = ref('');
+                const statusFilter = ref('all');
+                
+                const drawerVisible = ref(false);
+                const activeCandidate = ref({});
+                
+                const isSyncing = ref(false);
+                const loadingTable = ref(false);
+
+                // Config variables
+                const settings = ref(rawSettings || { subject: '', portfolioUrl: '', links: [] });
+                if (!settings.value.links) {
+                    settings.value.links = [];
+                }
+                
+                // Templates list & active template
+                const templates = ref(rawTemplates || []);
+                const selectedTemplateId = ref(templates.value.length > 0 ? templates.value[0].id : '');
+                const activeTemplate = computed(() => {
+                    return templates.value.find(t => t.id === selectedTemplateId.value);
+                });
+
+                const handleCreateTemplate = () => {
+                    const id = 'template_' + Date.now();
+                    const newTemp = {
+                        id: id,
+                        name: 'Nouveau modèle',
+                        subject: 'Sujet du mail',
+                        body: 'Bonjour {{"{{.FirstName}}"}} {{"{{.LastName}}"}},\n\n',
+                        type: 'txt'
+                    };
+                    templates.value.push(newTemp);
+                    selectedTemplateId.value = id;
+                };
+
+                const showVariablesHelp = ref(false);
+
+                const getLinkVariable = (key) => {
+                    return '{' + '{.Links.' + key + '}' + '}';
+                };
+
+                const varsHelp = {
+                    FirstName: '{' + '{.FirstName}' + '}',
+                    LastName: '{' + '{.LastName}' + '}',
+                    Company: '{' + '{.Company}' + '}',
+                    Position: '{' + '{.Position}' + '}',
+                    SenderName: '{' + '{.SenderName}' + '}',
+                    LinksVotreClef: '{' + '{.Links.VotreClef}' + '}',
+                    LinksPortfolio: '{' + '{.Links.Portfolio}' + '}'
+                };
+
+                const lastCaretPos = ref(0);
+
+                const updateCaret = (event) => {
+                    const textarea = event.target;
+                    if (textarea) {
+                        lastCaretPos.value = textarea.selectionStart;
+                    }
+                };
+
+                // Watch active template content length to auto-track cursor range safely
+                watch(selectedTemplateId, () => {
+                    const currentText = activeTemplate.value ? (activeTemplate.value.body || '') : '';
+                    lastCaretPos.value = currentText.length;
+                });
+
+                const insertVariable = (varName) => {
+                    if (!activeTemplate.value) return;
+                    
+                    const wrapper = document.getElementById('bodyTextarea');
+                    const textarea = wrapper ? wrapper.querySelector('textarea') : null;
+                    
+                    let textToInsert = '';
+                    if (varName === 'FirstName') textToInsert = '{' + '{.FirstName}' + '}';
+                    else if (varName === 'LastName') textToInsert = '{' + '{.LastName}' + '}';
+                    else if (varName === 'Company') textToInsert = '{' + '{.Company}' + '}';
+                    else if (varName === 'Position') textToInsert = '{' + '{.Position}' + '}';
+                    else if (varName === 'SenderName') textToInsert = '{' + '{.SenderName}' + '}';
+                    else if (varName.startsWith('link_')) {
+                        const linkKey = varName.replace('link_', '');
+                        textToInsert = '{' + '{.Links.' + linkKey + '}' + '}';
+                    }
+                    
+                    if (!textToInsert) return;
+
+                    const currentText = activeTemplate.value.body || '';
+                    
+                    // Fallback to end of text if lastCaretPos is out of range or not set
+                    let pos = lastCaretPos.value;
+                    if (pos < 0 || pos > currentText.length) {
+                        pos = currentText.length;
+                    }
+
+                    activeTemplate.value.body = currentText.substring(0, pos) + textToInsert + currentText.substring(pos);
+                    
+                    const newPos = pos + textToInsert.length;
+                    lastCaretPos.value = newPos;
+
+                    if (textarea) {
+                        nextTick(() => {
+                            textarea.focus();
+                            textarea.setSelectionRange(newPos, newPos);
+                        });
+                    }
+                };
+
+                const handleDeleteTemplate = () => {
+                    if (templates.value.length <= 1) return;
+                    
+                    const idx = templates.value.findIndex(t => t.id === selectedTemplateId.value);
+                    if (idx !== -1) {
+                        templates.value.splice(idx, 1);
+                        selectedTemplateId.value = templates.value[0].id;
+                    }
+                };
+
+                // Recipients CSV Editor state & methods
+                const editableCandidates = ref(JSON.parse(JSON.stringify(candidates.value)));
+                const isSavingCSV = ref(false);
+
+                const handleAddRecipientRow = () => {
+                    editableCandidates.value.push({
+                        Email: '',
+                        FirstName: '',
+                        LastName: '',
+                        Company: '',
+                        Position: ''
+                    });
+                };
+
+                const handleRemoveRecipientRow = (idx) => {
+                    editableCandidates.value.splice(idx, 1);
+                };
+
+                const handleSaveCSV = async () => {
+                    const invalidRows = editableCandidates.value.filter(c => !c.Email || !c.Email.trim());
+                    if (invalidRows.length > 0) {
+                        ElementPlus.ElNotification({
+                            title: 'Validation échouée',
+                            message: 'Tous les contacts doivent avoir une adresse e-mail valide.',
+                            type: 'warning',
+                            duration: 3000
+                        });
+                        return;
+                    }
+
+                    if (isSavingCSV.value) return;
+                    isSavingCSV.value = true;
+
+                    try {
+                        const response = await fetch('/save-recipients', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(editableCandidates.value)
+                        });
+                        const result = await response.json();
+                        if (response.ok && result.status === 'success') {
+                            ElementPlus.ElNotification({
+                                title: 'Destinataires sauvegardés',
+                                message: 'Le fichier CSV a été enregistré avec succès.',
+                                type: 'success',
+                                duration: 3000
+                            });
+                            candidates.value = JSON.parse(JSON.stringify(editableCandidates.value));
+                        } else {
+                            throw new Error(result.message || 'Erreur d\'écriture');
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        ElementPlus.ElNotification({
+                            title: 'Erreur d\'écriture CSV',
+                            message: error.message,
+                            type: 'error',
+                            duration: 5000
+                        });
+                    } finally {
+                        isSavingCSV.value = false;
+                    }
+                };
+
+                const handleDeleteCandidate = async (row) => {
+                    loadingTable.value = true;
+                    try {
+                        const response = await fetch('/delete-candidate', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ email: row.Email })
+                        });
+                        const result = await response.json();
+                        if (response.ok && result.status === 'success') {
+                            ElementPlus.ElNotification({
+                                title: 'Candidat supprimé',
+                                message: `Le contact ${row.Email} et son historique ont été supprimés.`,
+                                type: 'success',
+                                duration: 3000
+                            });
+                            // Recharger les données locale
+                            candidates.value = candidates.value.filter(c => c.Email.toLowerCase() !== row.Email.toLowerCase());
+                            editableCandidates.value = editableCandidates.value.filter(c => c.Email.toLowerCase() !== row.Email.toLowerCase());
+                        } else {
+                            throw new Error(result.message || 'Erreur de suppression');
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        ElementPlus.ElNotification({
+                            title: 'Erreur',
+                            message: error.message,
+                            type: 'error',
+                            duration: 5000
+                        });
+                    } finally {
+                        loadingTable.value = false;
+                    }
+                };
+
+                // Links management state & methods
+                const newLinkKey = ref('');
+                const newLinkLabel = ref('');
+                const newLinkUrl = ref('');
+
+                const handleAddLink = () => {
+                    const key = newLinkKey.value.trim();
+                    const label = newLinkLabel.value.trim();
+                    const url = newLinkUrl.value.trim();
+
+                    if (!key || !label || !url) {
+                        ElementPlus.ElNotification({
+                            title: 'Champs requis',
+                            message: 'Veuillez remplir la clef, le libellé et l\'URL du lien.',
+                            type: 'warning',
+                            duration: 3000
+                        });
+                        return;
+                    }
+
+                    if (!/^[a-zA-Z0-9_]+$/.test(key)) {
+                        ElementPlus.ElNotification({
+                            title: 'Clef invalide',
+                            message: 'La clef ne doit contenir que des lettres, chiffres ou tirets du bas (pas d\'espace).',
+                            type: 'warning',
+                            duration: 3000
+                        });
+                        return;
+                    }
+
+                    if (settings.value.links.some(l => l.key.toLowerCase() === key.toLowerCase())) {
+                        ElementPlus.ElNotification({
+                            title: 'Doublon',
+                            message: `La clef "${key}" existe déjà.`,
+                            type: 'warning',
+                            duration: 3000
+                        });
+                        return;
+                    }
+
+                    settings.value.links.push({ key, label, url });
+                    newLinkKey.value = '';
+                    newLinkLabel.value = '';
+                    newLinkUrl.value = '';
+                };
+
+                const handleRemoveLink = (idx) => {
+                    settings.value.links.splice(idx, 1);
+                };
+                
+                // Attachments List state
+                const attachmentsList = ref(rawAttachments || []);
+                const isSaving = ref(false);
+
+                // Env variables state
+                const envVars = ref(rawEnv || {});
+                const isSavingEnv = ref(false);
+
+                // Send campaign state
+                const confirmSendDialogVisible = ref(false);
+                const sendTemplateId = ref('');
+                const sendDialogVisible = ref(false);
+                const scrollbarRef = ref(null);
+                const sendProgress = ref({
+                    inProgress: false,
+                    total: 0,
+                    current: 0,
+                    lastLog: '',
+                    successCount: 0,
+                    failureCount: 0
+                });
+
+                const logLines = computed(() => {
+                    if (!sendProgress.value.lastLog) return [];
+                    return sendProgress.value.lastLog.split('\n').filter(line => line.trim() !== '');
+                });
+
+                const getLogType = (line) => {
+                    if (line.includes('ÉCHEC') || line.includes('Échec') || line.includes('Erreur')) {
+                        return 'danger';
+                    }
+                    if (line.includes('SUCCÈS') || line.includes('Succès') || line.includes('Succes')) {
+                        return 'success';
+                    }
+                    if (line.includes('Ignoré') || line.includes('Ignore')) {
+                        return 'warning';
+                    }
+                    return 'info';
+                };
+
+                // Shallow refs for component icons
+                const PromotionIcon = shallowRef(ElementPlusIconsVue.Promotion);
+                const CheckIcon = shallowRef(ElementPlusIconsVue.Check);
+
+                // Timeline fusionnée chronologiquement (envois + réponses mélangés par date)
+                const expandedReplies = ref({});
+                const mergedTimeline = computed(() => {
+                    const candidate = activeCandidate.value;
+                    if (!candidate) return [];
+                    const events = [];
+                    if (candidate.SentHistory) {
+                        candidate.SentHistory.forEach(s => {
+                            events.push({ type: 'sent', date: new Date(s.Date), subject: s.Subject });
+                        });
+                    }
+                    if (candidate.ReplyHistory) {
+                        candidate.ReplyHistory.forEach((r, idx) => {
+                            events.push({ type: 'reply', date: new Date(r.Date), subject: r.Subject, snippet: r.Snippet, body: r.Body, replyIndex: idx });
+                        });
+                    }
+                    events.sort((a, b) => a.date - b.date);
+                    return events;
+                });
+
+                const toggleReplyBody = (replyIndex) => {
+                    expandedReplies.value[replyIndex] = !expandedReplies.value[replyIndex];
+                };
+
+                // Menu selection handler
+                const handleMenuSelect = (index) => {
+                    activeTab.value = index;
+                };
+
+                // Computeds
+                const totalSent = computed(() => {
+                    let sum = 0;
+                    candidates.value.forEach(c => {
+                        sum += c.SentCount || 0;
+                    });
+                    return sum;
+                });
+                const totalReplies = computed(() => {
+                    let sum = 0;
+                    candidates.value.forEach(c => {
+                        sum += c.ReplyCount || 0;
+                    });
+                    return sum;
+                });
+                const totalWaiting = computed(() => Math.max(0, totalSent.value - totalReplies.value));
+                const replyRate = computed(() => {
+                    return totalSent.value > 0 ? Math.round((totalReplies.value / totalSent.value) * 100) : 0;
+                });
+
+                const sendPercentage = computed(() => {
+                    if (sendProgress.value.total === 0) return 0;
+                    return Math.round((sendProgress.value.current / sendProgress.value.total) * 100);
+                });
+
+                const filteredCandidates = computed(() => {
+                    return candidates.value.filter(item => {
+                        const name = (item.FirstName + ' ' + item.LastName).toLowerCase();
+                        const email = item.Email.toLowerCase();
+                        const company = (item.Company || '').toLowerCase();
+                        const query = searchQuery.value.toLowerCase();
+                        
+                        const matchesSearch = name.includes(query) || email.includes(query) || company.includes(query);
+                        
+                        let matchesFilter = true;
+                        if (statusFilter.value === 'waiting') {
+                            matchesFilter = !item.HasReply;
+                        } else if (statusFilter.value === 'replied') {
+                            matchesFilter = item.HasReply;
+                        }
+                        
+                        return matchesSearch && matchesFilter;
+                    });
+                });
+
+                // Interaction
+                const handleRowClick = (row) => {
+                    activeCandidate.value = row;
+                    expandedReplies.value = {};
+                    drawerVisible.value = true;
+                };
+
+                const handleSync = async () => {
+                    if (isSyncing.value) return;
+                    isSyncing.value = true;
+
+                    try {
+                        const response = await fetch('/sync', { method: 'POST' });
+                        const result = await response.json();
+                        
+                        if (response.ok && result.status === 'success') {
+                            ElementPlus.ElNotification({
+                                title: 'Succès',
+                                message: `Synchronisation réussie ! ${result.synced} nouvelle(s) réponse(s) importée(s).`,
+                                type: 'success',
+                                duration: 3000
+                            });
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            throw new Error(result.message || 'Erreur inconnue');
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        ElementPlus.ElNotification({
+                            title: 'Erreur',
+                            message: error.message,
+                            type: 'error',
+                            duration: 5000
+                        });
+                    } finally {
+                        isSyncing.value = false;
+                    }
+                };
+
+                const handleMailto = () => {
+                    if (activeCandidate.value.Email) {
+                        window.location.href = `mailto:${activeCandidate.value.Email}`;
+                    }
+                };
+
+                const handleSaveSettings = async () => {
+                    if (isSaving.value) return;
+                    isSaving.value = true;
+
+                    try {
+                        const response = await fetch('/settings', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                subject: settings.value.subject,
+                                portfolioUrl: settings.value.portfolioUrl,
+                                links: settings.value.links,
+                                templates: templates.value,
+                                templateHtml: ''
+                            })
+                        });
+                        const result = await response.json();
+                        if (response.ok && result.status === 'success') {
+                            ElementPlus.ElNotification({
+                                title: 'Succès',
+                                message: 'Modèle et paramètres enregistrés avec succès.',
+                                type: 'success',
+                                duration: 3000
+                            });
+                        } else {
+                            throw new Error(result.message || 'Erreur lors de la sauvegarde');
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        ElementPlus.ElNotification({
+                            title: 'Erreur',
+                            message: error.message,
+                            type: 'error',
+                            duration: 5000
+                        });
+                    } finally {
+                        isSaving.value = false;
+                    }
+                };
+
+                const handleSaveEnv = async () => {
+                    if (isSavingEnv.value) return;
+                    isSavingEnv.value = true;
+
+                    try {
+                        const response = await fetch('/save-env', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(envVars.value)
+                        });
+                        const result = await response.json();
+                        if (response.ok && result.status === 'success') {
+                            ElementPlus.ElNotification({
+                                title: 'Configuration sauvegardée',
+                                message: 'Le fichier .env a été mis à jour et appliqué au système en direct.',
+                                type: 'success',
+                                duration: 3000
+                            });
+                        } else {
+                            throw new Error(result.message || 'Erreur d\'écriture');
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        ElementPlus.ElNotification({
+                            title: 'Erreur de configuration',
+                            message: error.message,
+                            type: 'error',
+                            duration: 5000
+                        });
+                    } finally {
+                        isSavingEnv.value = false;
+                    }
+                };
+
+                const handleUploadSuccess = (res, file) => {
+                    const filename = file.name;
+                    if (!attachmentsList.value.includes(filename)) {
+                        attachmentsList.value.push(filename);
+                    }
+                    ElementPlus.ElNotification({
+                        title: 'Document ajouté',
+                        message: `${filename} a été importé avec succès.`,
+                        type: 'success',
+                        duration: 3000
+                    });
+                };
+
+                const handleUploadError = (err, file) => {
+                    console.error(err);
+                    ElementPlus.ElNotification({
+                        title: 'Échec de l\'importation',
+                        message: 'Erreur lors du transfert du fichier.',
+                        type: 'error',
+                        duration: 5000
+                    });
+                };
+
+                const handleDeleteAttachment = async (filename) => {
+                    try {
+                        const response = await fetch('/delete-attachment', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ filename })
+                        });
+                        const result = await response.json();
+                        if (response.ok && result.status === 'success') {
+                            ElementPlus.ElNotification({
+                                title: 'Document supprimé',
+                                message: `${filename} a été retiré des pièces jointes.`,
+                                type: 'success',
+                                duration: 3000
+                            });
+                            attachmentsList.value = attachmentsList.value.filter(f => f !== filename);
+                        } else {
+                            throw new Error(result.message || 'Erreur lors de la suppression');
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        ElementPlus.ElNotification({
+                            title: 'Erreur',
+                            message: error.message,
+                            type: 'error',
+                            duration: 5000
+                        });
+                    }
+                };
+
+                // Trigger Send Campaign logic
+                const triggerSendCampaign = () => {
+                    sendTemplateId.value = selectedTemplateId.value;
+                    confirmSendDialogVisible.value = true;
+                };
+
+                const startSendCampaign = async () => {
+                    confirmSendDialogVisible.value = false;
+                    try {
+                        const response = await fetch('/send', { 
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                templateId: sendTemplateId.value
+                            })
+                        });
+                        if (!response.ok) {
+                            const errData = await response.text();
+                            throw new Error(errData || 'Erreur de démarrage');
+                        }
+                        
+                        sendDialogVisible.value = true;
+                        pollSendStatus();
+                    } catch (error) {
+                        console.error(error);
+                        ElementPlus.ElNotification({
+                            title: 'Erreur de démarrage',
+                            message: error.message,
+                            type: 'error',
+                            duration: 5000
+                        });
+                    }
+                };
+
+                // Poll send status from server
+                const pollSendStatus = () => {
+                    let consecutiveErrors = 0;
+                    const timer = setInterval(async () => {
+                        try {
+                            const response = await fetch('/send-status');
+                            if (response.ok) {
+                                consecutiveErrors = 0;
+                                const data = await response.json();
+                                sendProgress.value = data;
+                                
+                                // Scroll log terminal to the bottom via Element Plus Scrollbar Ref
+                                nextTick(() => {
+                                    if (scrollbarRef.value) {
+                                        scrollbarRef.value.setScrollTop(99999);
+                                    }
+                                });
+
+                                if (!data.inProgress) {
+                                    clearInterval(timer);
+                                    ElementPlus.ElNotification({
+                                        title: 'Campagne terminée',
+                                        message: `L'envoi est fini. Succès: ${data.successCount}, Échecs: ${data.failureCount}`,
+                                        type: data.failureCount > 0 ? 'warning' : 'success',
+                                        duration: 5000
+                                    });
+                                    // Refresh data list after some delay
+                                    setTimeout(() => {
+                                        window.location.reload();
+                                    }, 2000);
+                                }
+                            } else {
+                                consecutiveErrors++;
+                            }
+                        } catch (error) {
+                            console.error(error);
+                            consecutiveErrors++;
+                        }
+                        if (consecutiveErrors >= 5) {
+                            clearInterval(timer);
+                            ElementPlus.ElNotification({
+                                title: 'Connexion perdue',
+                                message: 'Impossible de contacter le serveur après 5 tentatives. Le polling a été arrêté.',
+                                type: 'error',
+                                duration: 5000
+                            });
+                        }
+                    }, 1000);
+                };
+
+                return {
+                    activeTab,
+                    candidates,
+                    searchQuery,
+                    statusFilter,
+                    filteredCandidates,
+                    drawerVisible,
+                    activeCandidate,
+                    isSyncing,
+                    loadingTable,
+                    totalSent,
+                    totalReplies,
+                    totalWaiting,
+                    replyRate,
+                    settings,
+                    attachmentsList,
+                    envVars,
+                    isSaving,
+                    isSavingEnv,
+                    sendDialogVisible,
+                    scrollbarRef,
+                    sendProgress,
+                    sendPercentage,
+                    logLines,
+                    getLogType,
+                    mergedTimeline,
+                    expandedReplies,
+                    toggleReplyBody,
+                    handleRowClick,
+                    handleSync,
+                    handleMailto,
+                    handleMenuSelect,
+                    handleSaveSettings,
+                    handleSaveEnv,
+                    handleUploadSuccess,
+                    handleUploadError,
+                    handleDeleteAttachment,
+                    triggerSendCampaign,
+                    PromotionIcon,
+                    CheckIcon,
+                    newLinkKey,
+                    newLinkLabel,
+                    newLinkUrl,
+                    handleAddLink,
+                    handleRemoveLink,
+                    templates,
+                    selectedTemplateId,
+                    activeTemplate,
+                    handleCreateTemplate,
+                    handleDeleteTemplate,
+                    confirmSendDialogVisible,
+                    sendTemplateId,
+                    startSendCampaign,
+                    editableCandidates,
+                    isSavingCSV,
+                    handleAddRecipientRow,
+                    handleRemoveRecipientRow,
+                    handleSaveCSV,
+                    handleDeleteCandidate,
+                    showVariablesHelp,
+                    insertVariable,
+                    getLinkVariable,
+                    varsHelp,
+                    updateCaret
+                };
+            }
+        };
+
+        const app = createApp(App);
+        app.use(ElementPlus);
+        for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+            app.component(key, component);
+        }
+        app.mount("#app");
+    </script>
+</body>
+</html>

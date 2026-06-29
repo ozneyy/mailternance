@@ -1,0 +1,39 @@
+services:
+  mailsender:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mailsender
+    restart: unless-stopped
+
+    # Port : HOST:CONTAINER
+    # Le dashboard sera accessible sur http://<IP_OCI>:17890
+    ports:
+      - "17890:17890"
+
+    # Fichiers sensibles et données persistantes montés en volume
+    volumes:
+      # Credentials Gmail (OBLIGATOIRE — ne jamais commiter)
+      - ./.env:/app/.env:ro
+      # Liste des destinataires (lue et écrite par l'app)
+      - ./recipients.csv:/app/recipients.csv
+      # Données persistantes (historique, réponses, modèles, paramètres)
+      - ./sent_history.json:/app/sent_history.json
+      - ./replies.json:/app/replies.json
+      - ./settings.json:/app/settings.json
+      - ./templates.json:/app/templates.json
+      # Pièces jointes (CV, etc.)
+      - ./attachments:/app/attachments
+
+    environment:
+      # Forcer le port web sur 17890
+      - PORT=17890
+      # Les autres variables sont lues depuis le fichier .env monté
+
+    # Healthcheck : vérifie que le dashboard répond
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:17890/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

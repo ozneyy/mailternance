@@ -1,0 +1,32 @@
+# --- Fichiers sensibles ---
+.env
+.env.local
+.env.*.local
+
+# --- Docker ---
+.dockerignore
+
+# --- Données / Runtime ---
+*.log
+mailsender
+sent_history.json
+replies.json
+recipients.csv
+settings.json
+
+# --- Go Build Artifacts ---
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
