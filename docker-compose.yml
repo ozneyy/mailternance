@@ -13,9 +13,7 @@ services:
 
     # Fichiers sensibles et données persistantes montés en volume
     volumes:
-      # Credentials Gmail 
-      - ./.env:/app/.env:ro
-      # Dossier de données persistantes (historique, réponses, modèles, paramètres, destinataires)
+      # Dossier de données persistantes (historique, réponses, modèles, paramètres, destinataires, .env)
       - ./data:/app/data
       # Pièces jointes (CV, etc.)
       - ./web/attachments:/app/web/attachments
