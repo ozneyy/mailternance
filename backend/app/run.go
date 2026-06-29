@@ -5,7 +5,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"path/filepath"
 
 	"github.com/ozneyy/mailternance/backend/config"
 	"github.com/ozneyy/mailternance/backend/mail"
