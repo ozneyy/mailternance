@@ -1,107 +1,235 @@
-# Mailsender - Suivi de Candidatures Alternance & Envoi Automatique
+# Mailternance
 
-Cet outil léger et performant écrit en Go permet d'envoyer automatiquement des e-mails HTML de candidatures à partir d'un fichier CSV et de suivre les réponses des recruteurs dans un tableau de bord web interactif doté d'une interface CSS soignée.
-
-## Fonctionnalités
-
-*   **Envoi Automatique de Candidatures** : Envoi de mails personnalisés via SMTP Gmail à partir d'un fichier CSV.
-*   **Tableau de Bord Web Interactif** : Interface premium en mode sombre pour suivre vos candidatures envoyées, voir le taux de réponse, et filtrer les contacts.
-*   **Synchronisation IMAP** : Récupère automatiquement les réponses de vos recruteurs depuis votre boîte Gmail, associe chaque e-mail au bon candidat, et extrait un aperçu du message.
-*   **Boîte de Réception Intégrée** : Affiche le corps de l'e-mail (HTML ou texte brut) reçu directement dans un panneau latéral sans quitter l'application.
-*   **Gestion du débit (Rate Limiting)** : Espace l'envoi de chaque mail pour éviter le blocage de votre compte.
-*   **Zéro Dépendance Lourde** : Pas de base de données complexe à installer, les réponses sont sauvegardées dans un fichier local simple `replies.json`.
+> **Suivi de candidatures alternance & envoi automatisé de emails**  
+> Un outil auto-hébergé, léger et performant écrit en Go. Pas de base de données complexe, pas de SaaS tiers — vos données restent chez vous.
 
 ---
 
-## Structure du Projet
+## ✨ Fonctionnalités
 
-```text
-/home/nzoy/Scripts/Mailsender/
-├── mailsender         # L'exécutable compilé
-├── main.go            # Le code source Go (SMTP, IMAP, HTTP Server)
-├── recipients.csv     # Liste de vos recruteurs (nom, prénom, e-mail, entreprise)
-├── template.html      # Modèle de votre mail d'accompagnement (candidature)
-├── dashboard.html     # Modèle HTML/CSS du tableau de bord
-├── .env               # Fichier de configuration privé
-└── replies.json       # Base de données locale contenant les réponses reçues
+| Fonction | Description |
+|----------|-------------|
+| 📧 **Envoi automatisé** | Emails personnalisés via SMTP à partir d'un fichier CSV |
+| 📊 **Dashboard web** | Interface sombre premium pour suivre candidatures et taux de réponse |
+| 🔄 **Sync IMAP** | Récupération automatique des réponses recruteurs depuis Gmail |
+| 📬 **Boîte de réception intégrée** | Lecture des réponses sans quitter l'application |
+| ⏱️ **Rate limiting** | Délai configurable entre envois pour éviter le blocage |
+| 🐳 **Docker-ready** | Déploiement en un clic avec Docker Compose |
+| 🔒 **Zero dépendance lourde** | Stockage JSON local, pas de base de données |
+
+---
+
+## 🚀 Déploiement Rapide (Auto-hébergement)
+
+### Prérequis
+
+- [Docker](https://docs.docker.com/get-docker/) + Docker Compose
+- Un compte Gmail avec **mot de passe d'application** ([guide Google](https://support.google.com/accounts/answer/185833))
+
+### 1. Cloner le projet
+
+```bash
+git clone https://github.com/YOUR_USER/mailternance.git
+cd mailternance
 ```
 
----
+### 2. Configurer les credentials
 
-## Configuration
-
-### 1. Fichier de Configuration `.env`
-
-Le fichier `.env` a été pré-créé. Ouvrez-le et configurez vos accès Gmail :
+```bash
+cp .env.example .env
+# Éditez .env avec vos vrais credentials Gmail
+```
 
 ```ini
-# Configuration du Serveur SMTP (Envoi)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-
-# Configuration du Serveur IMAP (Réception/Suivi)
-IMAP_HOST=imap.gmail.com
-IMAP_PORT=993
-
-# Configuration du Serveur Web (Dashboard)
-PORT=8080
-
-# Identifiants de Connexion (Gmail nécessite un mot de passe d'application)
+# .env
 SMTP_EMAIL=votre.email@gmail.com
-SMTP_PASSWORD=votre_mot_de_passe_d_application
+SMTP_PASSWORD=votre_mot_de_passe_app_16_caracteres
+SENDER_NAME="Votre Prénom Nom"
 ```
 
-> [!IMPORTANT]
-> **Configuration de votre compte Gmail** :
-> 1. **Mot de passe d'application** : Activez la validation en 2 étapes sur votre compte Google, puis recherchez "Mots de passe d'application". Créez un mot de passe pour "Mailsender" et copiez le code à 16 caractères dans `SMTP_PASSWORD` (sans les espaces).
-> 2. **Activer l'IMAP** : Dans les paramètres de votre boîte Gmail en ligne, allez dans l'onglet **Transfert et POP/IMAP** et assurez-vous que **Activer l'IMAP** est coché.
+> **⚠️ Important** : Gmail exige un [mot de passe d'application](https://myaccount.google.com/apppasswords) (validation 2 étapes requise). Votre mot de passe Gmail classique ne fonctionnera pas.
 
-### 2. Destinataires (`recipients.csv`)
+### 3. Préparer les destinataires
 
-Remplissez ce fichier avec les informations des recruteurs :
+```bash
+cp recipients.csv.example recipients.csv
+# Éditez recipients.csv avec vos contacts
+```
 
 ```csv
-email,first_name,last_name,company
-recruteur1@entreprise.com,Jean,Dupont,Société Générale
-recruteur2@entreprise.com,Marie,Durand,Decathlon
+email,first_name,last_name,company,position
+recruteur@entreprise.com,Jean,Dupont,TechCorp,Lead Dev
 ```
 
-*Note : Les colonnes sont automatiquement converties en variables utilisables dans `template.html` (ex: `{{.FirstName}}`, `{{.LastName}}`, `{{.Company}}`).*
+### 4. Lancer
+
+```bash
+docker compose up -d
+```
+
+Le dashboard est accessible sur : **http://localhost:17890**
 
 ---
 
-## Mode 1 : Envoi des E-mails (Cron ou Manuel)
+## 📁 Structure du Projet
 
-Pour lancer la campagne d'envoi d'e-mails (par exemple pour votre planification automatique) :
+```
+mailternance/
+├── docker-compose.yml      # Orchestration Docker
+├── Dockerfile              # Image optimisée multi-stage
+├── .env.example            # Template de configuration
+├── .env                    # ⚠️ Vos credentials (non commité)
+├── main.go                 # Code source Go
+├── template.html           # Template email HTML
+├── template.txt            # Template email texte
+├── templates.json          # Modèles d'email configurables
+├── recipients.csv          # ⚠️ Vos contacts (non commité)
+├── settings.json           # Paramètres runtime (sujet, liens...)
+├── sent_history.json       # Historique d'envoi
+├── replies.json            # Réponses reçues
+├── dashboard.html          # Template du dashboard
+└── web/
+    └── style.css           # Styles du dashboard
+```
+
+> Les fichiers marqués ⚠️ sont ignorés par Git. Vos données personnelles ne quittent jamais votre machine.
+
+---
+
+## 🐳 Docker
+
+### Image
+
+- **Build multi-stage** : binaire compilé statiquement → image finale `debian:bookworm-slim` (~50 MB)
+- **Volumes** : données persistantes montées depuis l'hôte
+- **Healthcheck** : vérification automatique du dashboard
+
+### Commandes utiles
 
 ```bash
-cd /home/nzoy/Scripts/Mailsender
+# Démarrer
+docker compose up -d
+
+# Voir les logs
+docker compose logs -f
+
+# Redémarrer
+docker compose restart
+
+# Arrêter
+docker compose down
+
+# Mettre à jour (pull + rebuild)
+docker compose pull && docker compose up -d --build
+```
+
+---
+
+## ⚙️ Configuration
+
+### Variables d'environnement (`.env`)
+
+| Variable | Description | Défaut |
+|----------|-------------|--------|
+| `SMTP_HOST` | Serveur SMTP | `smtp.gmail.com` |
+| `SMTP_PORT` | Port SMTP | `587` |
+| `IMAP_HOST` | Serveur IMAP | `imap.gmail.com` |
+| `IMAP_PORT` | Port IMAP | `993` |
+| `SMTP_EMAIL` | Email d'envoi | *(obligatoire)* |
+| `SMTP_PASSWORD` | Mot de passe d'application | *(obligatoire)* |
+| `SENDER_NAME` | Nom de l'expéditeur | `Mailternance` |
+| `PORT` | Port du dashboard | `17890` |
+| `SEND_DELAY_MS` | Délai entre envois (ms) | `1500` |
+
+### Templates d'email
+
+Les variables disponibles dans `template.html` :
+
+| Variable | Source |
+|----------|--------|
+| `{{.FirstName}}` | Colonne `first_name` du CSV |
+| `{{.LastName}}` | Colonne `last_name` du CSV |
+| `{{.Company}}` | Colonne `company` du CSV |
+| `{{.Position}}` | Colonne `position` du CSV |
+| `{{.PortfolioURL}}` | Paramètre `settings.json` |
+| `{{.SenderName}}` | Variable d'env `SENDER_NAME` |
+
+---
+
+## 🔄 Modes d'utilisation
+
+### Mode 1 : Envoi (CLI / Cron)
+
+```bash
+# En local
+go build -o mailsender && ./mailsender
+
+# En Docker (one-shot)
+docker compose run --rm mailsender ./mailsender
+```
+
+**Planification cron** (lundi & jeudi à 8h30) :
+
+```cron
+30 8 * * 1,4 cd /chemin/vers/mailternance && docker compose run --rm mailsender ./mailsender >> cron.log 2>&1
+```
+
+### Mode 2 : Dashboard web
+
+```bash
+# En local
+go build -o mailsender && ./mailsender -web
+
+# En Docker (défaut)
+docker compose up -d
+```
+
+Accès : **http://localhost:17890**
+
+- **Synchroniser** : clic sur le bouton pour récupérer les nouvelles réponses
+- **Panneau latéral** : clic sur un candidat pour lire sa réponse
+- **Répondre** : clic sur "Répondre par email" pour ouvrir votre client mail
+
+---
+
+## 🔒 Sécurité & Vie Privée
+
+- **Aucune donnée n'est envoyée à un tiers** — tout reste local
+- **Credentials** : fichier `.env` jamais commité (`.gitignore`)
+- **Contacts** : `recipients.csv` jamais commité
+- **Historique** : `sent_history.json`, `replies.json` en local uniquement
+- **SMTP/IMAP** : connexions TLS chiffrées
+
+---
+
+## 🛠️ Développement
+
+### Prérequis
+
+- Go 1.21+
+
+### Build
+
+```bash
+go build -o mailsender
+```
+
+### Run
+
+```bash
+# Mode envoi
 ./mailsender
-```
 
-Le script enverra les mails aux adresses du CSV un par un, avec le délai configuré dans `.env`.
-
-### Planification Cron (Lundi et Jeudi matin à 08h30)
-
-Pour exécuter automatiquement l'envoi, ajoutez cette tâche planifiée :
-1. Lancez : `crontab -e`
-2. Ajoutez cette ligne à la fin :
-   ```cron
-   30 8 * * 1,4 cd /home/nzoy/Scripts/Mailsender && ./mailsender >> mailsender.log 2>&1
-   ```
-
----
-
-## Mode 2 : Tableau de Bord & Suivi des Réponses
-
-Pour démarrer l'interface web de suivi, lancez l'application avec le drapeau `-web` :
-
-```bash
-cd /home/nzoy/Scripts/Mailsender
+# Mode dashboard
 ./mailsender -web
 ```
 
-1. Ouvrez votre navigateur sur : **[http://localhost:8080](http://localhost:8080)**.
-2. Cliquez sur le bouton **Synchroniser** dans la barre latérale pour récupérer les e-mails de réponse de vos recruteurs.
-3. Les statistiques de réponse se mettent à jour automatiquement.
-4. Cliquez sur un candidat dans le tableau pour ouvrir le panneau latéral et lire sa réponse. Vous pouvez également cliquer sur "Répondre par e-mail" pour ouvrir directement votre client mail.
+---
+
+## 📄 Licence
+
+MIT — Voir [LICENSE](LICENSE)
+
+---
+
+> **Pourquoi auto-hébergé ?** Parce que vos candidatures, vos contacts et vos conversations avec les recruteurs ne méritent pas d'être stockées chez un prestataire tiers. Vos données, votre serveur.
