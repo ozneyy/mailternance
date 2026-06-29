@@ -1,6 +1,6 @@
-module mail-sender
+module github.com/ozneyy/mailternance
 
-go 1.26.4
+go 1.21
 
 require (
 	github.com/emersion/go-imap v1.2.1

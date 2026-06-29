@@ -1,23 +1,22 @@
 # ─────────────────────────────────────────────
 #  Stage 1 : Build
 # ─────────────────────────────────────────────
-FROM golang:latest AS builder
+FROM golang:1.21 AS builder
 
 WORKDIR /build
-
-# Ignorer la contrainte de version go.mod (go 1.26.4 déclaré mais non publié)
-ENV GOTOOLCHAIN=local
 
 # Copier uniquement go.mod / go.sum d'abord (cache des dépendances)
 COPY go.mod go.sum ./
 RUN go mod download
 
 # Copier le reste du code source
-COPY main.go .
+COPY cmd/ ./cmd/
+COPY internal/ ./internal/
+COPY assets/ ./assets/
 
 # Compiler un binaire statique pour Linux (pas de CGO)
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -ldflags="-w -s" -o mailsender .
+    go build -ldflags="-w -s" -o mailsender ./cmd/mailsender
 
 # ─────────────────────────────────────────────
 #  Stage 2 : Image finale minimale
@@ -34,11 +33,8 @@ WORKDIR /app
 # Copier le binaire compilé
 COPY --from=builder /build/mailsender .
 
-# Copier les assets statiques du dashboard
-COPY web/ ./web/
-
-# Copier les templates d'email par défaut
-COPY template.html template.txt ./
+# Copier les assets statiques
+COPY assets/ ./assets/
 
 # Créer les dossiers et fichiers de données persistants
 # (ils seront montés en volume en production)
