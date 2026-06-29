@@ -21,9 +21,12 @@
             <el-aside width="240px">
                 <div class="aside-menu">
                     <div class="brand-section">
-                        <el-avatar :size="32" style="background-color: #ffffff; display: flex; align-items: center; justify-content: center;">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#409eff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                        <el-avatar :size="32"
+                            style="background-color: #ffffff; display: flex; align-items: center; justify-content: center;">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#409eff"
+                                stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z">
+                                </path>
                                 <polyline points="22,6 12,13 2,6"></polyline>
                             </svg>
                         </el-avatar>
@@ -192,7 +195,8 @@
                                 <el-table-column label="Statut" width="130">
                                     <template #default="scope">
                                         <el-tag :type="scope.row.HasReply ? 'success' : 'warning'" round effect="flat">
-                                            {[ scope.row.HasReply ? (scope.row.ReplyCount > 1 ? scope.row.ReplyCount + ' réponses' : 'Réponse reçue') : 'En attente' ]}
+                                            {[ scope.row.HasReply ? (scope.row.ReplyCount > 1 ? scope.row.ReplyCount + '
+                                            réponses' : 'Réponse reçue') : 'En attente' ]}
                                         </el-tag>
                                     </template>
                                 </el-table-column>
@@ -870,7 +874,8 @@
                                                         le serveur met à jour le fichier et applique
                                                         <strong>immédiatement</strong> les nouveaux accès SMTP et IMAP
                                                         sans nécessiter de redémarrage de l'application (sauf pour le
-                                                        port d'écoute HTTP).</p>
+                                                        port d'écoute HTTP).
+                                                    </p>
                                                     <p style="margin-bottom: 12px;"><strong
                                                             style="color: var(--el-color-warning);">Validation en deux
                                                             étapes Google :</strong> N'utilisez pas votre mot de passe
@@ -953,7 +958,7 @@
                                     </template>
                                 </el-table-column>
 
-                                <el-table-column label="Poste (ex: RH)" min-width="130">
+                                <el-table-column label="Poste" min-width="130">
                                     <template #default="scope">
                                         <el-input v-model="scope.row.Position" placeholder="Ex: RH" size="default" />
                                     </template>
@@ -1060,7 +1065,8 @@
                                 <div v-if="event.body && event.body.length > 140" style="margin-top: 8px;">
                                     <el-button size="small" type="primary" text
                                         @click="toggleReplyBody(event.replyIndex)">
-                                        {[ expandedReplies[event.replyIndex] ? 'Masquer le message complet' : 'Voir le message complet' ]}
+                                        {[ expandedReplies[event.replyIndex] ? 'Masquer le message complet' : 'Voir le
+                                        message complet' ]}
                                     </el-button>
                                     <div v-if="expandedReplies[event.replyIndex]"
                                         style="margin-top: 10px; padding: 12px; background: var(--el-bg-color-page); border-radius: 6px; max-height: 400px; overflow: auto;">
@@ -1186,7 +1192,8 @@
                     :</p>
                 <ul>
                     <li>Utilisez la syntaxe <code>{[ varsHelp.LinksVotreClef ]}</code> (ex:
-                        <code>{[ varsHelp.LinksPortfolio ]}</code>).</li>
+                        <code>{[ varsHelp.LinksPortfolio ]}</code>).
+                    </li>
                     <li><strong>Dans un mail HTML</strong> : Cela générera automatiquement un lien hypertexte bleu et
                         cliquable avec le texte du lien.</li>
                     <li><strong>Dans un mail Texte brut</strong> : Cela affichera le texte du lien suivi de l'URL entre
@@ -1676,8 +1683,34 @@
                     expandedReplies.value[replyIndex] = !expandedReplies.value[replyIndex];
                 };
 
+                const checkUnsavedEdits = () => {
+                    if (editableCandidates.value.length !== candidates.value.length) return true;
+                    for (let i = 0; i < editableCandidates.value.length; i++) {
+                        const ec = editableCandidates.value[i];
+                        const c = candidates.value[i];
+                        if (!c) return true;
+                        if ((ec.Email || '').trim() !== (c.Email || '').trim() ||
+                            (ec.FirstName || '').trim() !== (c.FirstName || '').trim() ||
+                            (ec.LastName || '').trim() !== (c.LastName || '').trim() ||
+                            (ec.Company || '').trim() !== (c.Company || '').trim() ||
+                            (ec.Position || '').trim() !== (c.Position || '').trim()) {
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+
                 // Menu selection handler
                 const handleMenuSelect = (index) => {
+                    if (activeTab.value === 'recipients' && index !== 'recipients') {
+                        // Switching away from recipients, sync editable list if no unsaved edits
+                        if (!checkUnsavedEdits()) {
+                            editableCandidates.value = JSON.parse(JSON.stringify(candidates.value));
+                        }
+                    } else if (index === 'recipients' && activeTab.value !== 'recipients') {
+                        // Switching to recipients, sync editable list with latest data
+                        editableCandidates.value = JSON.parse(JSON.stringify(candidates.value));
+                    }
                     activeTab.value = index;
                 };
 
@@ -2301,9 +2334,16 @@
                         const res = await fetch('/api/candidates');
                         if (res.ok) {
                             const data = await res.json();
+                            
+                            // Check if the user has made unsaved edits relative to our CURRENT candidates array
+                            const isDirty = checkUnsavedEdits();
+
                             candidates.value = data.candidates || data;
-                            // Keep editable candidates in sync with candidate changes
-                            editableCandidates.value = JSON.parse(JSON.stringify(candidates.value));
+
+                            // Only update editableCandidates if there are no unsaved edits AND the user is not currently viewing the recipients tab
+                            if (!isDirty && activeTab.value !== 'recipients') {
+                                editableCandidates.value = JSON.parse(JSON.stringify(candidates.value));
+                            }
                         }
                         const resReplies = await fetch('/api/replies');
                         if (resReplies.ok) {

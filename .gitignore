@@ -21,6 +21,8 @@ web/attachments/
 *.out
 vendor/
 
+recipients.csv
+
 # --- IDE / OS ---
 .idea/
 .vscode/
