@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr" class="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,58 +10,60 @@
     <link rel="stylesheet" href="https://unpkg.com/element-plus/theme-chalk/dark/css-vars.css" />
     <link rel="stylesheet" href="/static/css/style.css" />
 </head>
+
 <body>
 
     <div id="app">
         <el-container class="layout-container">
-            
+
             <!-- Sidebar Navigation -->
             <el-aside width="240px">
                 <div class="aside-menu">
                     <div class="brand-section">
-                        <el-avatar :size="32" style="background-color: var(--el-color-primary);">
-                            <el-icon><Promotion /></el-icon>
+                        <el-avatar :size="32" style="background-color: #ffffff; display: flex; align-items: center; justify-content: center;">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#409eff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                <polyline points="22,6 12,13 2,6"></polyline>
+                            </svg>
                         </el-avatar>
                         <h2 class="brand-title">Mailternance</h2>
                     </div>
 
-                    <el-menu
-                        :default-active="activeTab"
-                        class="menu-list"
-                        @select="handleMenuSelect"
-                    >
+                    <el-menu :default-active="activeTab" class="menu-list" @select="handleMenuSelect">
                         <el-menu-item index="tracker">
-                            <el-icon><List /></el-icon>
-                            <span>Suivi Alternance</span>
+                            <el-icon>
+                                <List />
+                            </el-icon>
+                            <span>Suivi</span>
                         </el-menu-item>
                         <el-menu-item index="recipients">
-                            <el-icon><User /></el-icon>
-                            <span>Destinataires (CSV)</span>
+                            <el-icon>
+                                <User />
+                            </el-icon>
+                            <span>Destinataires</span>
                         </el-menu-item>
                         <el-menu-item index="settings">
-                            <el-icon><Setting /></el-icon>
+                            <el-icon>
+                                <Setting />
+                            </el-icon>
                             <span>Paramètres</span>
                         </el-menu-item>
                     </el-menu>
 
                     <div class="sync-section">
-                        <el-button 
-                            type="success"
-                            style="width: 100%; height: 40px; font-weight: bold;"
-                            @click="triggerSendCampaign"
-                            :disabled="sendProgress.inProgress"
-                        >
-                            <el-icon style="margin-right: 6px;"><PaperClip /></el-icon>
+                        <el-button type="success" style="width: 100%; height: 40px; font-weight: bold;"
+                            @click="triggerSendCampaign" :disabled="sendProgress.inProgress">
+                            <el-icon style="margin-right: 6px;">
+                                <Promotion />
+                            </el-icon>
                             Envoyer les candidatures
                         </el-button>
 
-                        <el-button 
-                            type="primary" 
-                            style="width: 100%; margin-left: 0;" 
-                            :loading="isSyncing" 
-                            @click="handleSync"
-                        >
-                            <el-icon style="margin-right: 6px;"><Refresh /></el-icon>
+                        <el-button type="primary" style="width: 100%; margin-left: 0;" :loading="isSyncing"
+                            @click="handleSync">
+                            <el-icon style="margin-right: 6px;">
+                                <Refresh />
+                            </el-icon>
                             Synchroniser Gmail
                         </el-button>
                     </div>
@@ -69,19 +72,21 @@
 
             <!-- Main Workspace Container -->
             <el-container>
-                
+
                 <!-- Top Header Bar -->
                 <el-header class="header-bar">
                     <h1 class="header-title">
-                        {[ activeTab === 'tracker' ? 'Suivi des Candidatures' : activeTab === 'recipients' ? 'Destinataires (CSV)' : 'Paramètres' ]}
+                        {[ activeTab === 'tracker' ? 'Suivi des Candidatures' : activeTab === 'recipients' ?
+                        'Destinataires (CSV)' : 'Paramètres' ]}
                     </h1>
                 </el-header>
 
                 <!-- Workspace Body -->
                 <el-main class="main-workspace">
-                    
+
                     <!-- View 1: Tracker -->
-                    <div v-if="activeTab === 'tracker'" style="display: flex; flex-direction: column; gap: 20px; flex-grow: 1;">
+                    <div v-if="activeTab === 'tracker'"
+                        style="display: flex; flex-direction: column; gap: 20px; flex-grow: 1;">
                         <!-- Stats Grid -->
                         <el-row :gutter="20" class="stats-row">
                             <el-col :span="6">
@@ -89,18 +94,22 @@
                                     <div class="stat-card-inner">
                                         <el-statistic :value="totalSent" title="Candidatures envoyées" />
                                         <div class="stat-icon-wrapper">
-                                            <el-icon><Message /></el-icon>
+                                            <el-icon>
+                                                <Message />
+                                            </el-icon>
                                         </div>
                                     </div>
                                 </el-card>
                             </el-col>
-                            
+
                             <el-col :span="6">
                                 <el-card shadow="hover">
                                     <div class="stat-card-inner">
                                         <el-statistic :value="totalReplies" title="Réponses reçues" />
                                         <div class="stat-icon-wrapper" style="color: var(--el-color-success);">
-                                            <el-icon><ChatLineRound /></el-icon>
+                                            <el-icon>
+                                                <ChatLineRound />
+                                            </el-icon>
                                         </div>
                                     </div>
                                 </el-card>
@@ -111,7 +120,9 @@
                                     <div class="stat-card-inner">
                                         <el-statistic :value="totalWaiting" title="En attente de retour" />
                                         <div class="stat-icon-wrapper" style="color: var(--el-color-warning);">
-                                            <el-icon><Clock /></el-icon>
+                                            <el-icon>
+                                                <Clock />
+                                            </el-icon>
                                         </div>
                                     </div>
                                 </el-card>
@@ -122,7 +133,9 @@
                                     <div class="stat-card-inner">
                                         <el-statistic :value="replyRate" suffix="%" title="Taux de retour" />
                                         <div class="stat-icon-wrapper" style="color: var(--el-color-danger);">
-                                            <el-icon><PieChart /></el-icon>
+                                            <el-icon>
+                                                <PieChart />
+                                            </el-icon>
                                         </div>
                                     </div>
                                 </el-card>
@@ -130,18 +143,17 @@
                         </el-row>
 
                         <!-- Table Card -->
-                        <el-card style="flex-grow: 1; display: flex; flex-direction: column;" shadow="never" class="table-card">
-                            
+                        <el-card style="flex-grow: 1; display: flex; flex-direction: column;" shadow="never"
+                            class="table-card">
+
                             <!-- Toolbar -->
                             <div class="table-toolbar">
-                                <el-input
-                                    v-model="searchQuery"
-                                    placeholder="Rechercher une entreprise..."
-                                    style="width: 280px;"
-                                    clearable
-                                >
+                                <el-input v-model="searchQuery" placeholder="Rechercher une entreprise..."
+                                    style="width: 280px;" clearable>
                                     <template #prefix>
-                                        <el-icon><Search /></el-icon>
+                                        <el-icon>
+                                            <Search />
+                                        </el-icon>
                                     </template>
                                 </el-input>
 
@@ -153,24 +165,21 @@
                             </div>
 
                             <!-- Data Table -->
-                            <el-table
-                                :data="filteredCandidates"
-                                style="width: 100%;"
-                                @row-click="handleRowClick"
-                                v-loading="loadingTable"
-                                highlight-current-row
-                            >
+                            <el-table :data="filteredCandidates" style="width: 100%;" @row-click="handleRowClick"
+                                v-loading="loadingTable" highlight-current-row>
                                 <el-table-column label="Recruteur / Entreprise" min-width="180">
                                     <template #default="scope">
                                         <div class="candidate-cell">
-                                            <el-avatar 
-                                                :size="32"
-                                                :type="scope.row.HasReply ? 'success' : 'info'"
-                                            >
-                                                {[ (scope.row.FirstName || scope.row.LastName) ? ((scope.row.FirstName ? scope.row.FirstName[0] : '') + (scope.row.LastName ? scope.row.LastName[0] : '')) : scope.row.Email.slice(0, 2).toUpperCase() ]}
+                                            <el-avatar :size="32" :type="scope.row.HasReply ? 'success' : 'info'">
+                                                {[ (scope.row.FirstName || scope.row.LastName) ? ((scope.row.FirstName ?
+                                                scope.row.FirstName[0] : '') + (scope.row.LastName ?
+                                                scope.row.LastName[0] : '')) : scope.row.Email.slice(0, 2).toUpperCase()
+                                                ]}
                                             </el-avatar>
                                             <div class="candidate-text">
-                                                <span class="candidate-name">{[ (scope.row.FirstName || scope.row.LastName) ? (scope.row.FirstName + ' ' + scope.row.LastName).trim() : scope.row.Email ]}</span>
+                                                <span class="candidate-name">{[ (scope.row.FirstName ||
+                                                    scope.row.LastName) ? (scope.row.FirstName + ' ' +
+                                                    scope.row.LastName).trim() : scope.row.Email ]}</span>
                                                 <span class="candidate-company">{[ scope.row.Company || '-' ]}</span>
                                             </div>
                                         </div>
@@ -182,7 +191,8 @@
                                 <el-table-column label="Statut" width="130">
                                     <template #default="scope">
                                         <el-tag :type="scope.row.HasReply ? 'success' : 'warning'" round effect="flat">
-                                            {[ scope.row.HasReply ? (scope.row.ReplyCount > 1 ? scope.row.ReplyCount + ' réponses' : 'Réponse reçue') : 'En attente' ]}
+                                            {[ scope.row.HasReply ? (scope.row.ReplyCount > 1 ? scope.row.ReplyCount + '
+                                            réponses' : 'Réponse reçue') : 'En attente' ]}
                                         </el-tag>
                                     </template>
                                 </el-table-column>
@@ -191,8 +201,12 @@
                                     <template #default="scope">
                                         <div class="message-preview">
                                             <span v-if="scope.row.HasReply">
-                                                <strong>{[ scope.row.ReplySubject ]}</strong> - {[ scope.row.ReplySnippet ]}
-                                                <span v-if="scope.row.ReplyCount > 1" style="color: var(--el-color-success); font-weight: 600; margin-left: 4px;">(+{[ scope.row.ReplyCount - 1 ]} autre{[ scope.row.ReplyCount > 2 ? 's' : '' ]})</span>
+                                                <strong>{[ scope.row.ReplySubject ]}</strong> - {[
+                                                scope.row.ReplySnippet ]}
+                                                <span v-if="scope.row.ReplyCount > 1"
+                                                    style="color: var(--el-color-success); font-weight: 600; margin-left: 4px;">(+{[
+                                                    scope.row.ReplyCount - 1 ]} autre{[ scope.row.ReplyCount > 2 ? 's' :
+                                                    '' ]})</span>
                                             </span>
                                             <span v-else style="color: var(--el-text-color-secondary);">
                                                 Aucune réponse, relance en attente.
@@ -203,20 +217,14 @@
 
                                 <el-table-column label="Actions" width="90" align="center">
                                     <template #default="scope">
-                                        <el-popconfirm
-                                            title="Supprimer ce contact et son historique ?"
-                                            confirm-button-text="Oui"
-                                            cancel-button-text="Non"
-                                            @confirm="handleDeleteCandidate(scope.row)"
-                                        >
+                                        <el-popconfirm title="Supprimer ce contact et son historique ?"
+                                            confirm-button-text="Oui" cancel-button-text="Non"
+                                            @confirm="handleDeleteCandidate(scope.row)">
                                             <template #reference>
-                                                <el-button
-                                                    type="danger"
-                                                    size="small"
-                                                    circle
-                                                    @click.stop
-                                                >
-                                                    <el-icon><Delete /></el-icon>
+                                                <el-button type="danger" size="small" circle @click.stop>
+                                                    <el-icon>
+                                                        <Delete />
+                                                    </el-icon>
                                                 </el-button>
                                             </template>
                                         </el-popconfirm>
@@ -230,7 +238,7 @@
                     <!-- View 2: Paramètres (Settings) -->
                     <div v-if="activeTab === 'settings'">
                         <el-tabs v-model="activeSettingsSubTab" type="card" class="settings-tabs">
-                            
+
                             <!-- Sub-tab 1: Modèles & Pièces jointes -->
                             <el-tab-pane label="Modèles & Pièces jointes" name="templates">
                                 <div style="margin-top: 15px;">
@@ -242,123 +250,160 @@
                                                     <div class="settings-card-header">
                                                         <div class="settings-card-header-left">
                                                             <el-tag type="primary" effect="plain" size="small" round>
-                                                                <el-icon style="margin-right: 4px;"><Promotion /></el-icon>Modèles d'e-mails
+                                                                <el-icon style="margin-right: 4px;">
+                                                                    <Promotion />
+                                                                </el-icon>Modèles d'e-mails
                                                             </el-tag>
                                                         </div>
                                                     </div>
                                                 </template>
                                                 <div style="display: flex; flex-direction: column; gap: 16px;">
-                                                    
+
                                                     <!-- Model selector and actions -->
                                                     <div style="display: flex; gap: 12px; align-items: center;">
-                                                        <el-select v-model="selectedTemplateId" placeholder="Choisir un modèle" style="flex-grow: 1;">
-                                                            <el-option 
-                                                                v-for="t in templates" 
-                                                                :key="t.id" 
-                                                                :label="t.name + ' (' + t.type.toUpperCase() + ')'" 
-                                                                :value="t.id" 
-                                                            />
+                                                        <el-select v-model="selectedTemplateId"
+                                                            placeholder="Choisir un modèle" style="flex-grow: 1;">
+                                                            <el-option v-for="t in templates" :key="t.id"
+                                                                :label="t.name + ' (' + t.type.toUpperCase() + ')'"
+                                                                :value="t.id" />
                                                         </el-select>
-                                                        
+
                                                         <el-button type="success" @click="handleCreateTemplate">
-                                                            <el-icon><Plus /></el-icon> Nouveau
+                                                            <el-icon>
+                                                                <Plus />
+                                                            </el-icon> Nouveau
                                                         </el-button>
-                                                        
-                                                        <el-button 
-                                                            type="danger" 
-                                                            :disabled="templates.length <= 1"
-                                                            @click="handleDeleteTemplate"
-                                                        >
-                                                            <el-icon><Delete /></el-icon>
+
+                                                        <el-button type="danger" :disabled="templates.length <= 1"
+                                                            @click="handleDeleteTemplate">
+                                                            <el-icon>
+                                                                <Delete />
+                                                            </el-icon>
                                                         </el-button>
                                                     </div>
 
                                                     <!-- Edit Active Template Form -->
                                                     <el-form label-position="top" v-if="activeTemplate">
                                                         <el-form-item label="Nom du modèle">
-                                                            <el-input v-model="activeTemplate.name" placeholder="Ex: Relance Candidature" />
+                                                            <el-input v-model="activeTemplate.name"
+                                                                placeholder="Ex: Relance Candidature" />
                                                         </el-form-item>
 
                                                         <el-form-item label="Type de message">
                                                             <el-radio-group v-model="activeTemplate.type">
-                                                                <el-radio-button label="txt">Texte brut</el-radio-button>
+                                                                <el-radio-button label="txt">Texte
+                                                                    brut</el-radio-button>
                                                                 <el-radio-button label="html">HTML</el-radio-button>
                                                             </el-radio-group>
                                                         </el-form-item>
 
                                                         <el-form-item label="Objet du mail">
-                                                            <el-input v-model="activeTemplate.subject" placeholder="Ex: Candidature Alternance - [Votre Nom]" />
+                                                            <el-input v-model="activeTemplate.subject"
+                                                                placeholder="Ex: Candidature Alternance - [Votre Nom]" />
                                                         </el-form-item>
 
-                                                        <el-form-item :label="activeTemplate.type === 'html' ? 'Corps du mail (HTML)' : 'Corps du mail (Texte Brut)'">
+                                                        <el-form-item
+                                                            :label="activeTemplate.type === 'html' ? 'Corps du mail (HTML)' : 'Corps du mail (Texte Brut)'">
                                                             <!-- Variables Insert Toolbar -->
-                                                            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
-                                                                <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('FirstName')">
-                                                                    <el-icon style="margin-right: 4px;"><User /></el-icon> Prénom
+                                                            <div
+                                                                style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                                                                <el-button size="small" type="primary" plain
+                                                                    @mousedown.prevent="insertVariable('FirstName')">
+                                                                    <el-icon style="margin-right: 4px;">
+                                                                        <User />
+                                                                    </el-icon> Prénom
                                                                 </el-button>
-                                                                <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('LastName')">
-                                                                    <el-icon style="margin-right: 4px;"><User /></el-icon> Nom
+                                                                <el-button size="small" type="primary" plain
+                                                                    @mousedown.prevent="insertVariable('LastName')">
+                                                                    <el-icon style="margin-right: 4px;">
+                                                                        <User />
+                                                                    </el-icon> Nom
                                                                 </el-button>
-                                                                <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('Company')">
-                                                                    <el-icon style="margin-right: 4px;"><OfficeBuilding /></el-icon> Entreprise
+                                                                <el-button size="small" type="primary" plain
+                                                                    @mousedown.prevent="insertVariable('Company')">
+                                                                    <el-icon style="margin-right: 4px;">
+                                                                        <OfficeBuilding />
+                                                                    </el-icon> Entreprise
                                                                 </el-button>
-                                                                <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('Position')">
-                                                                    <el-icon style="margin-right: 4px;"><Briefcase /></el-icon> Poste
+                                                                <el-button size="small" type="primary" plain
+                                                                    @mousedown.prevent="insertVariable('Position')">
+                                                                    <el-icon style="margin-right: 4px;">
+                                                                        <Briefcase />
+                                                                    </el-icon> Poste
                                                                 </el-button>
-                                                                <el-button size="small" type="primary" plain @mousedown.prevent="insertVariable('SenderName')">
-                                                                    <el-icon style="margin-right: 4px;"><Avatar /></el-icon> Votre Nom
+                                                                <el-button size="small" type="primary" plain
+                                                                    @mousedown.prevent="insertVariable('SenderName')">
+                                                                    <el-icon style="margin-right: 4px;">
+                                                                        <Avatar />
+                                                                    </el-icon> Votre Nom
                                                                 </el-button>
 
                                                                 <el-dropdown trigger="click">
                                                                     <el-button size="small" type="warning" plain>
-                                                                        <el-icon style="margin-right: 4px;"><Link /></el-icon> Insérer lien... <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                                                                        <el-icon style="margin-right: 4px;">
+                                                                            <Link />
+                                                                        </el-icon> Insérer lien... <el-icon
+                                                                            class="el-icon--right">
+                                                                            <ArrowDown />
+                                                                        </el-icon>
                                                                     </el-button>
                                                                     <template #dropdown>
                                                                         <el-dropdown-menu>
-                                                                            <el-dropdown-item v-if="settings.links.length === 0" disabled>
+                                                                            <el-dropdown-item
+                                                                                v-if="settings.links.length === 0"
+                                                                                disabled>
                                                                                 Aucun lien configuré
                                                                             </el-dropdown-item>
                                                                             <el-dropdown-item
-                                                                                v-for="l in settings.links"
-                                                                                :key="l.key"
-                                                                                @mousedown.prevent="insertVariable('link_' + l.key)"
-                                                                            >
-                                                                                {[ l.label ]} ({[ getLinkVariable(l.key) ]})
+                                                                                v-for="l in settings.links" :key="l.key"
+                                                                                @mousedown.prevent="insertVariable('link_' + l.key)">
+                                                                                {[ l.label ]} ({[ getLinkVariable(l.key)
+                                                                                ]})
                                                                             </el-dropdown-item>
                                                                         </el-dropdown-menu>
                                                                     </template>
                                                                 </el-dropdown>
 
-                                                                <el-button size="small" type="info" plain @click="showVariablesHelp = true">
-                                                                    <el-icon style="margin-right: 4px;"><QuestionFilled /></el-icon> Aide variables
+                                                                <el-button size="small" type="info" plain
+                                                                    @click="showVariablesHelp = true">
+                                                                    <el-icon style="margin-right: 4px;">
+                                                                        <QuestionFilled />
+                                                                    </el-icon> Aide variables
                                                                 </el-button>
                                                             </div>
 
-                                                            <el-input 
-                                                                id="bodyTextarea"
-                                                                v-model="activeTemplate.body" 
-                                                                type="textarea" 
-                                                                :rows="12" 
-                                                                :placeholder="activeTemplate.type === 'html' ? 'Saisissez votre code HTML...' : 'Saisissez votre texte...'" 
-                                                                @keyup="updateCaret"
-                                                                @click="updateCaret"
-                                                                @select="updateCaret"
-                                                            />
-                                                            <div style="margin-top: 6px; font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.5;">
-                                                                Astuce : Vous pouvez injecter des variables de fusion issues de votre CSV : 
-                                                                <code>{[ varsHelp.FirstName ]}</code>, <code>{[ varsHelp.LastName ]}</code>, <code>{[ varsHelp.Company ]}</code>.<br>
-                                                                Pour les liens personnalisés, utilisez la syntaxe <code>{[ varsHelp.LinksVotreClef ]}</code> (ex: <code>{[ varsHelp.LinksPortfolio ]}</code>).
+                                                            <el-input id="bodyTextarea" v-model="activeTemplate.body"
+                                                                type="textarea" :rows="12"
+                                                                :placeholder="activeTemplate.type === 'html' ? 'Saisissez votre code HTML...' : 'Saisissez votre texte...'"
+                                                                @keyup="updateCaret" @click="updateCaret"
+                                                                @select="updateCaret" />
+                                                            <div
+                                                                style="margin-top: 6px; font-size: 12px; color: var(--el-text-color-secondary); line-height: 1.5;">
+                                                                Astuce : Vous pouvez injecter des variables de fusion
+                                                                issues de votre CSV :
+                                                                <code>{[ varsHelp.FirstName ]}</code>,
+                                                                <code>{[ varsHelp.LastName ]}</code>,
+                                                                <code>{[ varsHelp.Company ]}</code>.<br>
+                                                                Pour les liens personnalisés, utilisez la syntaxe
+                                                                <code>{[ varsHelp.LinksVotreClef ]}</code> (ex:
+                                                                <code>{[ varsHelp.LinksPortfolio ]}</code>).
                                                             </div>
                                                         </el-form-item>
 
                                                         <!-- Legacy PortfolioURL field hidden but maintained for links compatibility -->
-                                                        <el-form-item label="Lien du Portfolio (variable héritée {.PortfolioURL})" style="margin-top: 10px;">
-                                                            <el-input v-model="settings.portfolioUrl" placeholder="Ex: https://monportfolio.com" />
+                                                        <el-form-item
+                                                            label="Lien du Portfolio (variable héritée {.PortfolioURL})"
+                                                            style="margin-top: 10px;">
+                                                            <el-input v-model="settings.portfolioUrl"
+                                                                placeholder="Ex: https://monportfolio.com" />
                                                         </el-form-item>
 
                                                         <el-form-item>
-                                                            <el-button type="primary" :loading="isSaving" @click="handleSaveSettings">
-                                                                <el-icon style="margin-right: 6px;"><Check /></el-icon>
+                                                            <el-button type="primary" :loading="isSaving"
+                                                                @click="handleSaveSettings">
+                                                                <el-icon style="margin-right: 6px;">
+                                                                    <Check />
+                                                                </el-icon>
                                                                 Sauvegarder les Modèles & Paramètres
                                                             </el-button>
                                                         </el-form-item>
@@ -373,60 +418,54 @@
                                                 <template #header>
                                                     <div class="settings-card-header">
                                                         <el-tag type="success" effect="plain" size="small" round>
-                                                            <el-icon style="margin-right: 4px;"><PaperClip /></el-icon>Pièces jointes
+                                                            <el-icon style="margin-right: 4px;">
+                                                                <PaperClip />
+                                                            </el-icon>Pièces jointes
                                                         </el-tag>
                                                     </div>
                                                 </template>
                                                 <div style="display: flex; flex-direction: column; gap: 20px;">
-                                                    
+
                                                     <!-- Files table -->
-                                                    <el-table 
-                                                        :data="attachmentsList" 
-                                                        style="width: 100%" 
-                                                        size="default"
-                                                        empty-text="Aucune pièce jointe. Les e-mails seront envoyés sans document joint."
-                                                    >
+                                                    <el-table :data="attachmentsList" style="width: 100%" size="default"
+                                                        empty-text="Aucune pièce jointe. Les e-mails seront envoyés sans document joint.">
                                                         <el-table-column label="Nom du fichier de candidature">
                                                             <template #default="scope">
-                                                                <div style="display: flex; align-items: center; gap: 8px;">
-                                                                    <el-icon><Document /></el-icon>
+                                                                <div
+                                                                    style="display: flex; align-items: center; gap: 8px;">
+                                                                    <el-icon>
+                                                                        <Document />
+                                                                    </el-icon>
                                                                     <span>{[ scope.row ]}</span>
                                                                 </div>
                                                             </template>
                                                         </el-table-column>
-                                                        
+
                                                         <el-table-column width="70" align="center">
                                                             <template #default="scope">
-                                                                <el-button
-                                                                    type="danger"
-                                                                    size="small"
-                                                                    circle
-                                                                    @click="handleDeleteAttachment(scope.row)"
-                                                                >
-                                                                    <el-icon><Delete /></el-icon>
+                                                                <el-button type="danger" size="small" circle
+                                                                    @click="handleDeleteAttachment(scope.row)">
+                                                                    <el-icon>
+                                                                        <Delete />
+                                                                    </el-icon>
                                                                 </el-button>
                                                             </template>
                                                         </el-table-column>
                                                     </el-table>
 
                                                     <!-- Upload area -->
-                                                    <el-upload
-                                                        class="upload-demo"
-                                                        drag
-                                                        action="/upload-attachment"
-                                                        name="file"
-                                                        :on-success="handleUploadSuccess"
-                                                        :on-error="handleUploadError"
-                                                        multiple
-                                                        :show-file-list="false"
-                                                    >
+                                                    <el-upload class="upload-demo" drag action="/upload-attachment"
+                                                        name="file" :on-success="handleUploadSuccess"
+                                                        :on-error="handleUploadError" multiple :show-file-list="false">
                                                         <el-icon class="el-icon--upload"><upload-filled /></el-icon>
                                                         <div class="el-upload__text">
-                                                            Glissez vos documents de candidature ici (CV, lettre...) ou <em>cliquez pour charger</em>
+                                                            Glissez vos documents de candidature ici (CV, lettre...) ou
+                                                            <em>cliquez pour charger</em>
                                                         </div>
                                                         <template #tip>
                                                             <div class="el-upload__tip" style="text-align: center;">
-                                                                Formats acceptés : PDF, PNG, JPG... (Max 10 Mo par document)
+                                                                Formats acceptés : PDF, PNG, JPG... (Max 10 Mo par
+                                                                document)
                                                             </div>
                                                         </template>
                                                     </el-upload>
@@ -438,22 +477,21 @@
                                                 <template #header>
                                                     <div class="settings-card-header">
                                                         <el-tag type="warning" effect="plain" size="small" round>
-                                                            <el-icon style="margin-right: 4px;"><Link /></el-icon>Liens personnalisés
+                                                            <el-icon style="margin-right: 4px;">
+                                                                <Link />
+                                                            </el-icon>Liens personnalisés
                                                         </el-tag>
                                                     </div>
                                                 </template>
                                                 <div style="display: flex; flex-direction: column; gap: 16px;">
                                                     <div style="font-size: 13px; color: var(--el-text-color-regular);">
-                                                        Configurez des liens nommés cliquables utilisables dans vos modèles.
+                                                        Configurez des liens nommés cliquables utilisables dans vos
+                                                        modèles.
                                                     </div>
 
                                                     <!-- Links Table -->
-                                                    <el-table 
-                                                        :data="settings.links" 
-                                                        style="width: 100%" 
-                                                        size="small"
-                                                        empty-text="Aucun lien personnalisé."
-                                                    >
+                                                    <el-table :data="settings.links" style="width: 100%" size="small"
+                                                        empty-text="Aucun lien personnalisé.">
                                                         <el-table-column label="Variable" width="165">
                                                             <template #default="scope">
                                                                 <code>{[ getLinkVariable(scope.row.key) ]}</code>
@@ -463,39 +501,49 @@
                                                         <el-table-column label="URL" prop="url" show-overflow-tooltip />
                                                         <el-table-column width="60" align="center">
                                                             <template #default="scope">
-                                                                <el-button
-                                                                    type="danger"
-                                                                    size="small"
-                                                                    circle
-                                                                    @click="handleRemoveLink(scope.$index)"
-                                                                >
-                                                                    <el-icon><Delete /></el-icon>
+                                                                <el-button type="danger" size="small" circle
+                                                                    @click="handleRemoveLink(scope.$index)">
+                                                                    <el-icon>
+                                                                        <Delete />
+                                                                    </el-icon>
                                                                 </el-button>
                                                             </template>
                                                         </el-table-column>
                                                     </el-table>
 
                                                     <!-- Add Link Form -->
-                                                    <div style="border-top: 1px solid var(--el-border-color-light); padding-top: 16px;">
-                                                        <h5 style="margin: 0 0 12px 0; font-size: 13px; font-weight: 600;">Ajouter un nouveau lien</h5>
+                                                    <div
+                                                        style="border-top: 1px solid var(--el-border-color-light); padding-top: 16px;">
+                                                        <h5
+                                                            style="margin: 0 0 12px 0; font-size: 13px; font-weight: 600;">
+                                                            Ajouter un nouveau lien</h5>
                                                         <el-form label-position="top" size="small">
                                                             <el-row :gutter="10">
                                                                 <el-col :span="8">
-                                                                    <el-form-item label="Clef (sans espace)" style="margin-bottom: 8px;">
-                                                                        <el-input v-model="newLinkKey" placeholder="Ex: Portfolio" />
+                                                                    <el-form-item label="Clef (sans espace)"
+                                                                        style="margin-bottom: 8px;">
+                                                                        <el-input v-model="newLinkKey"
+                                                                            placeholder="Ex: Portfolio" />
                                                                     </el-form-item>
                                                                 </el-col>
                                                                 <el-col :span="16">
-                                                                    <el-form-item label="Texte cliquable" style="margin-bottom: 8px;">
-                                                                        <el-input v-model="newLinkLabel" placeholder="Ex: Consulter mon Portfolio" />
+                                                                    <el-form-item label="Texte cliquable"
+                                                                        style="margin-bottom: 8px;">
+                                                                        <el-input v-model="newLinkLabel"
+                                                                            placeholder="Ex: Consulter mon Portfolio" />
                                                                     </el-form-item>
                                                                 </el-col>
                                                             </el-row>
-                                                            <el-form-item label="URL de redirection" style="margin-bottom: 12px;">
-                                                                <el-input v-model="newLinkUrl" placeholder="Ex: https://monportfolio.com" />
+                                                            <el-form-item label="URL de redirection"
+                                                                style="margin-bottom: 12px;">
+                                                                <el-input v-model="newLinkUrl"
+                                                                    placeholder="Ex: https://monportfolio.com" />
                                                             </el-form-item>
-                                                            <el-button type="success" size="small" style="width: 100%;" @click="handleAddLink">
-                                                                <el-icon style="margin-right: 4px;"><Plus /></el-icon>
+                                                            <el-button type="success" size="small" style="width: 100%;"
+                                                                @click="handleAddLink">
+                                                                <el-icon style="margin-right: 4px;">
+                                                                    <Plus />
+                                                                </el-icon>
                                                                 Ajouter le lien
                                                             </el-button>
                                                         </el-form>
@@ -517,17 +565,16 @@
                                                 <template #header>
                                                     <div class="settings-card-header">
                                                         <el-tag type="warning" effect="plain" size="small" round>
-                                                            <el-icon style="margin-right: 4px;"><Promotion /></el-icon>Envoi automatique (Auto-Send)
+                                                            <el-icon style="margin-right: 4px;">
+                                                                <Promotion />
+                                                            </el-icon>Envoi automatique (Auto-Send)
                                                         </el-tag>
-                                                        <el-button
-                                                            size="small"
-                                                            type="info"
-                                                            plain
-                                                            @click="testServerTime"
-                                                            :loading="testingTime"
-                                                            style="margin-left: auto;"
-                                                        >
-                                                            <el-icon style="margin-right: 4px;"><Clock /></el-icon>Tester l'heure serveur
+                                                        <el-button size="small" type="info" plain
+                                                            @click="testServerTime" :loading="testingTime"
+                                                            style="margin-left: auto;">
+                                                            <el-icon style="margin-right: 4px;">
+                                                                <Clock />
+                                                            </el-icon>Tester l'heure serveur
                                                         </el-button>
                                                     </div>
                                                 </template>
@@ -537,125 +584,103 @@
                                                     <el-row :gutter="16">
                                                         <el-col :xs="24" :sm="12">
                                                             <el-form-item label="Activer l'envoi auto">
-                                                                <el-switch
-                                                                    v-model="autoSendEnabled"
-                                                                    @change="toggleAutoSend"
-                                                                    active-text="Activé"
-                                                                    inactive-text="Désactivé"
-                                                                />
+                                                                <el-switch v-model="autoSendEnabled"
+                                                                    @change="toggleAutoSend" active-text="Activé"
+                                                                    inactive-text="Désactivé" />
                                                             </el-form-item>
                                                         </el-col>
                                                         <el-col :xs="24" :sm="12">
                                                             <el-form-item label="Modèle à utiliser">
-                                                                <el-select
-                                                                    v-model="autoSendTemplateId"
+                                                                <el-select v-model="autoSendTemplateId"
                                                                     placeholder="Sélectionner un modèle"
-                                                                    style="width: 100%;"
-                                                                    :disabled="!autoSendEnabled"
-                                                                    @change="onAutoSendTemplateChange"
-                                                                >
-                                                                    <el-option
-                                                                        v-for="t in templates"
-                                                                        :key="t.id"
-                                                                        :label="t.name"
-                                                                        :value="t.id"
-                                                                    />
+                                                                    style="width: 100%;" :disabled="!autoSendEnabled"
+                                                                    @change="onAutoSendTemplateChange">
+                                                                    <el-option v-for="t in templates" :key="t.id"
+                                                                        :label="t.name" :value="t.id" />
                                                                 </el-select>
                                                             </el-form-item>
                                                         </el-col>
                                                     </el-row>
 
                                                     <el-form-item label="Options d'envoi">
-                                                        <el-checkbox
-                                                            v-model="autoSendSkipAlreadySent"
-                                                            :disabled="!autoSendEnabled"
-                                                            @change="onAutoSendSkipChange"
-                                                        >
+                                                        <el-checkbox v-model="autoSendSkipAlreadySent"
+                                                            :disabled="!autoSendEnabled" @change="onAutoSendSkipChange">
                                                             Éviter les doublons (ne pas envoyer si déjà contacté)
                                                         </el-checkbox>
                                                     </el-form-item>
 
                                                     <!-- Weekly Schedule -->
                                                     <el-divider content-position="left">
-                                                        <el-text size="small" type="info">Planification hebdomadaire</el-text>
+                                                        <el-text size="small" type="info">Planification
+                                                            hebdomadaire</el-text>
                                                     </el-divider>
 
-                                                    <div style="font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 12px;">
-                                                        Cochez les jours souhaités et définissez l'heure d'envoi pour chaque jour. Les heures sont celles du serveur.
+                                                    <div
+                                                        style="font-size: 12px; color: var(--el-text-color-secondary); margin-bottom: 12px;">
+                                                        Cochez les jours souhaités et définissez l'heure d'envoi pour
+                                                        chaque jour. Les heures sont celles du serveur.
                                                     </div>
 
-                                                    <div class="schedule-grid" :class="{ 'schedule-disabled': !autoSendEnabled }">
-                                                        <div
-                                                            v-for="day in weekDays"
-                                                            :key="day.key"
+                                                    <div class="schedule-grid"
+                                                        :class="{ 'schedule-disabled': !autoSendEnabled }">
+                                                        <div v-for="day in weekDays" :key="day.key"
                                                             class="schedule-day-row"
-                                                            :class="{ 'schedule-day-active': isScheduled(day.key) }"
-                                                        >
-                                                            <el-checkbox
-                                                                :model-value="isScheduled(day.key)"
+                                                            :class="{ 'schedule-day-active': isScheduled(day.key) }">
+                                                            <el-checkbox :model-value="isScheduled(day.key)"
                                                                 @change="(v) => toggleScheduleDay(day.key, v)"
-                                                                :disabled="!autoSendEnabled"
-                                                            >
+                                                                :disabled="!autoSendEnabled">
                                                                 <span class="schedule-day-label">{[ day.label ]}</span>
                                                             </el-checkbox>
-                                                            <el-time-select
-                                                                v-if="isScheduled(day.key)"
-                                                                v-model="scheduleTimeMap[day.key]"
-                                                                start="00:00"
-                                                                step="00:15"
-                                                                end="23:45"
-                                                                placeholder="HH:mm"
-                                                                :disabled="!autoSendEnabled"
-                                                                size="small"
+                                                            <el-time-select v-if="isScheduled(day.key)"
+                                                                v-model="scheduleTimeMap[day.key]" start="00:00"
+                                                                step="00:15" end="23:45" placeholder="HH:mm"
+                                                                :disabled="!autoSendEnabled" size="small"
                                                                 :clearable="false"
-                                                                style="width: 110px; margin-left: auto;"
-                                                            />
-                                                            <span v-else style="margin-left: auto; font-size: 11px; color: var(--el-text-color-placeholder);">—</span>
+                                                                style="width: 110px; margin-left: auto;" />
+                                                            <span v-else
+                                                                style="margin-left: auto; font-size: 11px; color: var(--el-text-color-placeholder);">—</span>
                                                         </div>
                                                     </div>
 
                                                     <!-- Summary of configured slots -->
                                                     <div v-if="autoSendSchedule.length > 0" style="margin-top: 12px;">
                                                         <el-text size="small" type="success">
-                                                            <el-icon><Check /></el-icon>
+                                                            <el-icon>
+                                                                <Check />
+                                                            </el-icon>
                                                             {[ autoSendSchedule.length ]} créneau(x) configuré(s)
                                                         </el-text>
-                                                        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
-                                                            <el-tag
-                                                                v-for="slot in autoSendSchedule"
-                                                                :key="slot.day + slot.time"
-                                                                size="small"
-                                                                type="warning"
-                                                                effect="light"
-                                                                closable
-                                                                @close="removeScheduleSlot(slot)"
-                                                            >
+                                                        <div
+                                                            style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
+                                                            <el-tag v-for="slot in autoSendSchedule"
+                                                                :key="slot.day + slot.time" size="small" type="warning"
+                                                                effect="light" closable
+                                                                @close="removeScheduleSlot(slot)">
                                                                 {[ getDayLabel(slot.day) ]} {[ slot.time ]}
                                                             </el-tag>
                                                         </div>
                                                     </div>
-                                                    <el-text v-else size="small" type="info" style="margin-top: 8px; display: block;">
+                                                    <el-text v-else size="small" type="info"
+                                                        style="margin-top: 8px; display: block;">
                                                         Aucun créneau configuré — l'auto-send ne se déclenchera pas.
                                                     </el-text>
 
                                                     <el-form-item style="margin-top: 16px; margin-bottom: 0;">
-                                                        <div style="display: flex; gap: 10px; width: 100%; flex-wrap: wrap;">
-                                                            <el-button
-                                                                type="primary"
-                                                                :loading="isSavingAutoSend"
+                                                        <div
+                                                            style="display: flex; gap: 10px; width: 100%; flex-wrap: wrap;">
+                                                            <el-button type="primary" :loading="isSavingAutoSend"
                                                                 :disabled="!autoSendEnabled"
-                                                                @click="saveAutoSendSchedule"
-                                                            >
-                                                                <el-icon style="margin-right: 6px;"><Check /></el-icon>
+                                                                @click="saveAutoSendSchedule">
+                                                                <el-icon style="margin-right: 6px;">
+                                                                    <Check />
+                                                                </el-icon>
                                                                 Enregistrer la planification
                                                             </el-button>
-                                                            <el-button
-                                                                type="info"
-                                                                plain
-                                                                :loading="testingTime"
-                                                                @click="testServerTime"
-                                                            >
-                                                                <el-icon style="margin-right: 6px;"><Clock /></el-icon>
+                                                            <el-button type="info" plain :loading="testingTime"
+                                                                @click="testServerTime">
+                                                                <el-icon style="margin-right: 6px;">
+                                                                    <Clock />
+                                                                </el-icon>
                                                                 Test heure
                                                             </el-button>
                                                         </div>
@@ -669,35 +694,31 @@
                                             <el-card class="config-card" shadow="never">
                                                 <template #header>
                                                     <el-tag effect="plain" size="small" round>
-                                                        <el-icon style="margin-right: 4px;"><Refresh /></el-icon>Auto-sync IMAP
+                                                        <el-icon style="margin-right: 4px;">
+                                                            <Refresh />
+                                                        </el-icon>Auto-sync IMAP
                                                     </el-tag>
                                                 </template>
-                                                <div style="font-size: 13px; line-height: 1.6; color: var(--el-text-color-regular); margin-bottom: 16px;">
-                                                    <p>Activez la synchronisation automatique pour importer les réponses Gmail périodiquement sans intervention manuelle.</p>
+                                                <div
+                                                    style="font-size: 13px; line-height: 1.6; color: var(--el-text-color-regular); margin-bottom: 16px;">
+                                                    <p>Activez la synchronisation automatique pour importer les réponses
+                                                        Gmail périodiquement sans intervention manuelle.</p>
                                                 </div>
-                                                
+
                                                 <el-form label-position="top">
                                                     <el-form-item label="Activer l'auto-sync">
-                                                        <el-switch
-                                                            v-model="autoSyncEnabled"
-                                                            @change="toggleAutoSync"
-                                                            active-text="Activé"
-                                                            inactive-text="Désactivé"
-                                                        />
+                                                        <el-switch v-model="autoSyncEnabled" @change="toggleAutoSync"
+                                                            active-text="Activé" inactive-text="Désactivé" />
                                                     </el-form-item>
-                                                    
+
                                                     <el-form-item label="Intervalle (minutes)">
-                                                        <el-slider
-                                                            v-model="autoSyncInterval"
-                                                            :min="1"
-                                                            :max="60"
-                                                            :step="1"
-                                                            show-input
-                                                            :disabled="!autoSyncEnabled"
-                                                            @change="onAutoSyncIntervalChange"
-                                                        />
-                                                        <div style="font-size: 12px; color: var(--el-text-color-secondary); margin-top: 4px;">
-                                                            Synchronisation toutes les <strong>{[ autoSyncInterval ]} minute(s)</strong>
+                                                        <el-slider v-model="autoSyncInterval" :min="1" :max="60"
+                                                            :step="1" show-input :disabled="!autoSyncEnabled"
+                                                            @change="onAutoSyncIntervalChange" />
+                                                        <div
+                                                            style="font-size: 12px; color: var(--el-text-color-secondary); margin-top: 4px;">
+                                                            Synchronisation toutes les <strong>{[ autoSyncInterval ]}
+                                                                minute(s)</strong>
                                                         </div>
                                                     </el-form-item>
                                                 </el-form>
@@ -716,57 +737,68 @@
                                                 <template #header>
                                                     <div class="settings-card-header">
                                                         <el-tag type="danger" effect="plain" size="small" round>
-                                                            <el-icon style="margin-right: 4px;"><Lock /></el-icon>Fichier .env — Configuration serveur
+                                                            <el-icon style="margin-right: 4px;">
+                                                                <Lock />
+                                                            </el-icon>Fichier .env — Configuration serveur
                                                         </el-tag>
-                                                        <el-tooltip content="Ces paramètres sont sauvegardés dans le fichier .env local" placement="top">
-                                                            <el-icon style="color: var(--el-text-color-placeholder); cursor: help;"><QuestionFilled /></el-icon>
+                                                        <el-tooltip
+                                                            content="Ces paramètres sont sauvegardés dans le fichier .env local"
+                                                            placement="top">
+                                                            <el-icon
+                                                                style="color: var(--el-text-color-placeholder); cursor: help;">
+                                                                <QuestionFilled />
+                                                            </el-icon>
                                                         </el-tooltip>
                                                     </div>
                                                 </template>
                                                 <el-form label-position="top">
-                                                    <el-divider content-position="left"><el-text size="small" type="info">SMTP — Envoi</el-text></el-divider>
+                                                    <el-divider content-position="left"><el-text size="small"
+                                                            type="info">SMTP — Envoi</el-text></el-divider>
                                                     <el-row :gutter="20">
                                                         <el-col :xs="24" :sm="12">
                                                             <el-form-item label="Serveur SMTP (Envoi)">
-                                                                <el-input v-model="envVars.smtpHost" placeholder="smtp.gmail.com" />
+                                                                <el-input v-model="envVars.smtpHost"
+                                                                    placeholder="smtp.gmail.com" />
                                                             </el-form-item>
                                                         </el-col>
                                                         <el-col :span="12">
                                                             <el-form-item label="Port SMTP">
-                                                                <el-input v-model="envVars.smtpPort" placeholder="587" />
+                                                                <el-input v-model="envVars.smtpPort"
+                                                                    placeholder="587" />
                                                             </el-form-item>
                                                         </el-col>
                                                     </el-row>
 
-                                                    <el-divider content-position="left"><el-text size="small" type="info">IMAP — Réception</el-text></el-divider>
+                                                    <el-divider content-position="left"><el-text size="small"
+                                                            type="info">IMAP — Réception</el-text></el-divider>
                                                     <el-row :gutter="20">
                                                         <el-col :xs="24" :sm="12">
                                                             <el-form-item label="Serveur IMAP (Réception/Suivi)">
-                                                                <el-input v-model="envVars.imapHost" placeholder="imap.gmail.com" />
+                                                                <el-input v-model="envVars.imapHost"
+                                                                    placeholder="imap.gmail.com" />
                                                             </el-form-item>
                                                         </el-col>
                                                         <el-col :xs="24" :sm="12">
                                                             <el-form-item label="Port IMAP">
-                                                                <el-input v-model="envVars.imapPort" placeholder="993" />
+                                                                <el-input v-model="envVars.imapPort"
+                                                                    placeholder="993" />
                                                             </el-form-item>
                                                         </el-col>
                                                     </el-row>
 
-                                                    <el-divider content-position="left"><el-text size="small" type="info">Identité d'expéditeur</el-text></el-divider>
+                                                    <el-divider content-position="left"><el-text size="small"
+                                                            type="info">Identité d'expéditeur</el-text></el-divider>
                                                     <el-row :gutter="20">
                                                         <el-col :xs="24" :sm="12">
                                                             <el-form-item label="Votre adresse e-mail Gmail">
-                                                                <el-input v-model="envVars.smtpEmail" placeholder="votre.email@gmail.com" />
+                                                                <el-input v-model="envVars.smtpEmail"
+                                                                    placeholder="votre.email@gmail.com" />
                                                             </el-form-item>
                                                         </el-col>
                                                         <el-col :xs="24" :sm="12">
                                                             <el-form-item label="Mot de passe d'application Google">
-                                                                <el-input 
-                                                                    v-model="envVars.smtpPassword" 
-                                                                    type="password" 
-                                                                    show-password
-                                                                    placeholder="abcd efgh ijkl mnop" 
-                                                                />
+                                                                <el-input v-model="envVars.smtpPassword" type="password"
+                                                                    show-password placeholder="abcd efgh ijkl mnop" />
                                                             </el-form-item>
                                                         </el-col>
                                                     </el-row>
@@ -774,24 +806,30 @@
                                                     <el-row :gutter="20">
                                                         <el-col :xs="24" :sm="12">
                                                             <el-form-item label="Nom d'expéditeur affiché">
-                                                                <el-input v-model="envVars.senderName" placeholder="Ex: Jean Dupont" />
+                                                                <el-input v-model="envVars.senderName"
+                                                                    placeholder="Ex: Jean Dupont" />
                                                             </el-form-item>
                                                         </el-col>
                                                         <el-col :xs="24" :sm="12">
                                                             <el-form-item label="Délai entre envois (ms)">
-                                                                <el-input v-model="envVars.sendDelayMs" placeholder="1500" />
+                                                                <el-input v-model="envVars.sendDelayMs"
+                                                                    placeholder="1500" />
                                                             </el-form-item>
                                                         </el-col>
                                                     </el-row>
 
-                                                    <el-divider content-position="left"><el-text size="small" type="info">Serveur web</el-text></el-divider>
+                                                    <el-divider content-position="left"><el-text size="small"
+                                                            type="info">Serveur web</el-text></el-divider>
                                                     <el-row :gutter="20">
                                                         <el-col :xs="24" :sm="12">
                                                             <el-form-item label="Port du Serveur Web local">
                                                                 <el-input v-model="envVars.port" placeholder="8080">
                                                                     <template #append>
-                                                                        <el-tooltip content="Nécessite un redémarrage" placement="top">
-                                                                            <el-icon><Warning /></el-icon>
+                                                                        <el-tooltip content="Nécessite un redémarrage"
+                                                                            placement="top">
+                                                                            <el-icon>
+                                                                                <Warning />
+                                                                            </el-icon>
                                                                         </el-tooltip>
                                                                     </template>
                                                                 </el-input>
@@ -800,8 +838,11 @@
                                                     </el-row>
 
                                                     <el-form-item style="margin-bottom: 0;">
-                                                        <el-button type="primary" :loading="isSavingEnv" @click="handleSaveEnv">
-                                                            <el-icon style="margin-right: 6px;"><Check /></el-icon>
+                                                        <el-button type="primary" :loading="isSavingEnv"
+                                                            @click="handleSaveEnv">
+                                                            <el-icon style="margin-right: 6px;">
+                                                                <Check />
+                                                            </el-icon>
                                                             Mettre à jour la configuration (.env)
                                                         </el-button>
                                                     </el-form-item>
@@ -813,14 +854,28 @@
                                             <el-card class="config-card" shadow="never">
                                                 <template #header>
                                                     <el-tag type="info" effect="plain" size="small" round>
-                                                        <el-icon style="margin-right: 4px;"><InfoFilled /></el-icon>À propos du .env
+                                                        <el-icon style="margin-right: 4px;">
+                                                            <InfoFilled />
+                                                        </el-icon>À propos du .env
                                                     </el-tag>
                                                 </template>
-                                                <div style="font-size: 13px; line-height: 1.6; color: var(--el-text-color-regular);">
-                                                    <p style="margin-bottom: 12px;"><strong>À propos du fichier .env :</strong></p>
-                                                    <p style="margin-bottom: 12px;">Ces paramètres sont stockés localement dans le fichier caché <code>.env</code> situé à la racine du projet.</p>
-                                                    <p style="margin-bottom: 12px;">En enregistrant les modifications, le serveur met à jour le fichier et applique <strong>immédiatement</strong> les nouveaux accès SMTP et IMAP sans nécessiter de redémarrage de l'application (sauf pour le port d'écoute HTTP).</p>
-                                                    <p style="margin-bottom: 12px;"><strong style="color: var(--el-color-warning);">Validation en deux étapes Google :</strong> N'utilisez pas votre mot de passe Gmail standard. Créez un mot de passe d'application à 16 lettres dans l'interface de gestion de votre compte Google.</p>
+                                                <div
+                                                    style="font-size: 13px; line-height: 1.6; color: var(--el-text-color-regular);">
+                                                    <p style="margin-bottom: 12px;"><strong>À propos du fichier .env
+                                                            :</strong></p>
+                                                    <p style="margin-bottom: 12px;">Ces paramètres sont stockés
+                                                        localement dans le fichier caché <code>.env</code> situé à la
+                                                        racine du projet.</p>
+                                                    <p style="margin-bottom: 12px;">En enregistrant les modifications,
+                                                        le serveur met à jour le fichier et applique
+                                                        <strong>immédiatement</strong> les nouveaux accès SMTP et IMAP
+                                                        sans nécessiter de redémarrage de l'application (sauf pour le
+                                                        port d'écoute HTTP).</p>
+                                                    <p style="margin-bottom: 12px;"><strong
+                                                            style="color: var(--el-color-warning);">Validation en deux
+                                                            étapes Google :</strong> N'utilisez pas votre mot de passe
+                                                        Gmail standard. Créez un mot de passe d'application à 16 lettres
+                                                        dans l'interface de gestion de votre compte Google.</p>
                                                 </div>
                                             </el-card>
                                         </el-col>
@@ -835,96 +890,82 @@
                     <div v-if="activeTab === 'recipients'">
                         <el-card class="config-card" shadow="never">
                             <template #header>
-                                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                                    <h3 style="margin: 0; font-size: 16px; color: var(--el-text-color-primary);">Éditeur de Destinataires (CSV)</h3>
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                    <h3 style="margin: 0; font-size: 16px; color: var(--el-text-color-primary);">Éditeur
+                                        de Destinataires (CSV)</h3>
                                     <div style="display: flex; gap: 12px;">
                                         <el-button type="info" plain @click="importDialogVisible = true">
-                                            <el-icon style="margin-right: 4px;"><Upload /></el-icon>
+                                            <el-icon style="margin-right: 4px;">
+                                                <Upload />
+                                            </el-icon>
                                             Importer une liste
                                         </el-button>
                                         <el-button type="success" @click="handleAddRecipientRow">
-                                            <el-icon style="margin-right: 4px;"><Plus /></el-icon>
+                                            <el-icon style="margin-right: 4px;">
+                                                <Plus />
+                                            </el-icon>
                                             Ajouter un contact
                                         </el-button>
                                         <el-button type="primary" :loading="isSavingCSV" @click="handleSaveCSV">
-                                            <el-icon style="margin-right: 4px;"><Check /></el-icon>
+                                            <el-icon style="margin-right: 4px;">
+                                                <Check />
+                                            </el-icon>
                                             Enregistrer les modifications
                                         </el-button>
                                     </div>
                                 </div>
                             </template>
 
-                            <div style="font-size: 13px; color: var(--el-text-color-regular); margin-bottom: 16px; line-height: 1.5;">
-                                Modifiez les informations de vos destinataires ci-dessous. Les modifications seront écrites directement dans le fichier <code>recipients.csv</code>.
+                            <div
+                                style="font-size: 13px; color: var(--el-text-color-regular); margin-bottom: 16px; line-height: 1.5;">
+                                Modifiez les informations de vos destinataires ci-dessous. Les modifications seront
+                                écrites directement dans le fichier <code>recipients.csv</code>.
                             </div>
 
-                            <el-table 
-                                :data="editableCandidates" 
-                                style="width: 100%;" 
-                                max-height="550"
-                                empty-text="Aucun destinataire. Cliquez sur 'Ajouter un contact' pour commencer."
-                            >
+                            <el-table :data="editableCandidates" style="width: 100%;" max-height="550"
+                                empty-text="Aucun destinataire. Cliquez sur 'Ajouter un contact' pour commencer.">
                                 <el-table-column label="#" type="index" width="50" align="center" />
-                                
+
                                 <el-table-column label="Adresse E-mail" min-width="180">
                                     <template #default="scope">
-                                        <el-input 
-                                            v-model="scope.row.Email" 
-                                            placeholder="recruteur@entreprise.com" 
-                                            size="default" 
-                                        />
+                                        <el-input v-model="scope.row.Email" placeholder="recruteur@entreprise.com"
+                                            size="default" />
                                     </template>
                                 </el-table-column>
 
                                 <el-table-column label="Nom" min-width="120">
                                     <template #default="scope">
-                                        <el-input 
-                                            v-model="scope.row.LastName" 
-                                            placeholder="Ex: Dupont" 
-                                            size="default" 
-                                        />
+                                        <el-input v-model="scope.row.LastName" placeholder="Ex: Dupont"
+                                            size="default" />
                                     </template>
                                 </el-table-column>
 
                                 <el-table-column label="Prénom" min-width="120">
                                     <template #default="scope">
-                                        <el-input 
-                                            v-model="scope.row.FirstName" 
-                                            placeholder="Ex: Jean" 
-                                            size="default" 
-                                        />
+                                        <el-input v-model="scope.row.FirstName" placeholder="Ex: Jean" size="default" />
                                     </template>
                                 </el-table-column>
 
                                 <el-table-column label="Entreprise" min-width="150">
                                     <template #default="scope">
-                                        <el-input 
-                                            v-model="scope.row.Company" 
-                                            placeholder="Ex: Google" 
-                                            size="default" 
-                                        />
+                                        <el-input v-model="scope.row.Company" placeholder="Ex: Google" size="default" />
                                     </template>
                                 </el-table-column>
 
                                 <el-table-column label="Poste (ex: RH)" min-width="130">
                                     <template #default="scope">
-                                        <el-input 
-                                            v-model="scope.row.Position" 
-                                            placeholder="Ex: RH" 
-                                            size="default" 
-                                        />
+                                        <el-input v-model="scope.row.Position" placeholder="Ex: RH" size="default" />
                                     </template>
                                 </el-table-column>
 
                                 <el-table-column width="70" align="center">
                                     <template #default="scope">
-                                        <el-button
-                                            type="danger"
-                                            size="small"
-                                            circle
-                                            @click="handleRemoveRecipientRow(scope.$index)"
-                                        >
-                                            <el-icon><Delete /></el-icon>
+                                        <el-button type="danger" size="small" circle
+                                            @click="handleRemoveRecipientRow(scope.$index)">
+                                            <el-icon>
+                                                <Delete />
+                                            </el-icon>
                                         </el-button>
                                     </template>
                                 </el-table-column>
@@ -937,19 +978,20 @@
         </el-container>
 
         <!-- Side Drawer Details -->
-        <el-drawer
-            v-model="drawerVisible"
-            size="540px"
-            destroy-on-close
-        >
+        <el-drawer v-model="drawerVisible" size="540px" destroy-on-close>
             <template #header>
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <el-avatar :size="36" style="background-color: var(--el-color-primary);">
-                        {[ (activeCandidate.FirstName || activeCandidate.LastName) ? ((activeCandidate.FirstName ? activeCandidate.FirstName[0] : '') + (activeCandidate.LastName ? activeCandidate.LastName[0] : '')) : (activeCandidate.Email ? activeCandidate.Email.slice(0, 2).toUpperCase() : '') ]}
+                        {[ (activeCandidate.FirstName || activeCandidate.LastName) ? ((activeCandidate.FirstName ?
+                        activeCandidate.FirstName[0] : '') + (activeCandidate.LastName ? activeCandidate.LastName[0] :
+                        '')) : (activeCandidate.Email ? activeCandidate.Email.slice(0, 2).toUpperCase() : '') ]}
                     </el-avatar>
                     <div>
-                        <h3 style="margin: 0; font-size: 16px; color: var(--el-text-color-primary);">{[ (activeCandidate.FirstName || activeCandidate.LastName) ? (activeCandidate.FirstName + ' ' + activeCandidate.LastName).trim() : activeCandidate.Email ]}</h3>
-                        <span style="font-size: 12px; color: var(--el-text-color-secondary);">{[ activeCandidate.Email ]}</span>
+                        <h3 style="margin: 0; font-size: 16px; color: var(--el-text-color-primary);">{[
+                            (activeCandidate.FirstName || activeCandidate.LastName) ? (activeCandidate.FirstName + ' ' +
+                            activeCandidate.LastName).trim() : activeCandidate.Email ]}</h3>
+                        <span style="font-size: 12px; color: var(--el-text-color-secondary);">{[ activeCandidate.Email
+                            ]}</span>
                     </div>
                 </div>
             </template>
@@ -971,40 +1013,37 @@
                 </el-descriptions>
 
                 <!-- Conversation History (fusionné chronologiquement) -->
-                <h4 style="margin: 10px 0 0 0; color: var(--el-text-color-primary); font-size: 14px;">Historique d'échanges</h4>
+                <h4 style="margin: 10px 0 0 0; color: var(--el-text-color-primary); font-size: 14px;">Historique
+                    d'échanges</h4>
 
                 <el-timeline style="padding-left: 2px;">
                     <!-- Fallback if no history at all -->
-                    <el-timeline-item
-                        v-if="mergedTimeline.length === 0"
-                        timestamp="Date d'envoi (historique indisponible)"
-                        placement="top"
-                        type="primary"
-                        :icon="PromotionIcon"
-                    >
+                    <el-timeline-item v-if="mergedTimeline.length === 0"
+                        timestamp="Date d'envoi (historique indisponible)" placement="top" type="primary"
+                        :icon="PromotionIcon">
                         <el-card shadow="never">
                             <div class="timeline-card-content">
-                                <strong>Bonjour{[ (activeCandidate.FirstName || activeCandidate.LastName) ? ' ' + (activeCandidate.FirstName + ' ' + activeCandidate.LastName).trim() + ',' : '' ]}</strong><br><br>
-                                Je me permets de vous adresser ma candidature pour l'offre d'alternance au sein de votre structure <strong>{[ activeCandidate.Company || 'entreprise' ]}</strong>.<br><br>
+                                <strong>Bonjour{[ (activeCandidate.FirstName || activeCandidate.LastName) ? ' ' +
+                                    (activeCandidate.FirstName + ' ' + activeCandidate.LastName).trim() + ',' : ''
+                                    ]}</strong><br><br>
+                                Je me permets de vous adresser ma candidature pour l'offre d'alternance au sein de votre
+                                structure <strong>{[ activeCandidate.Company || 'entreprise' ]}</strong>.<br><br>
                                 Veuillez trouver mes documents de candidature joints à cet e-mail...
                             </div>
                         </el-card>
                     </el-timeline-item>
 
                     <!-- Merged chronological timeline -->
-                    <el-timeline-item
-                        v-for="(event, idx) in mergedTimeline"
-                        :key="'event_' + idx"
-                        :timestamp="event.date.toLocaleString('fr-FR')"
-                        placement="top"
+                    <el-timeline-item v-for="(event, idx) in mergedTimeline" :key="'event_' + idx"
+                        :timestamp="event.date.toLocaleString('fr-FR')" placement="top"
                         :type="event.type === 'sent' ? 'primary' : 'success'"
-                        :icon="event.type === 'sent' ? PromotionIcon : CheckIcon"
-                    >
+                        :icon="event.type === 'sent' ? PromotionIcon : CheckIcon">
                         <!-- Sent event -->
                         <el-card v-if="event.type === 'sent'" shadow="never">
                             <div class="timeline-card-content">
                                 <strong>Objet :</strong> {[ event.subject ]}<br>
-                                <span style="font-size: 12px; color: var(--el-text-color-secondary);">E-mail envoyé avec succès.</span>
+                                <span style="font-size: 12px; color: var(--el-text-color-secondary);">E-mail envoyé avec
+                                    succès.</span>
                             </div>
                         </el-card>
 
@@ -1012,21 +1051,23 @@
                         <el-card v-else shadow="never" style="border-color: var(--el-color-success-light-8);">
                             <template #header>
                                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                                    <span style="font-weight: 600; color: var(--el-color-success);">Objet : {[ event.subject ]}</span>
+                                    <span style="font-weight: 600; color: var(--el-color-success);">Objet : {[
+                                        event.subject ]}</span>
                                 </div>
                             </template>
                             <div class="timeline-card-content reply-body-container">
                                 <div>{[ event.snippet ]}</div>
                                 <div v-if="event.body && event.body.length > 140" style="margin-top: 8px;">
-                                    <el-button size="small" type="primary" text @click="toggleReplyBody(event.replyIndex)">
-                                        {[ expandedReplies[event.replyIndex] ? 'Masquer le message complet' : 'Voir le message complet' ]}
+                                    <el-button size="small" type="primary" text
+                                        @click="toggleReplyBody(event.replyIndex)">
+                                        {[ expandedReplies[event.replyIndex] ? 'Masquer le message complet' : 'Voir le
+                                        message complet' ]}
                                     </el-button>
-                                    <div v-if="expandedReplies[event.replyIndex]" style="margin-top: 10px; padding: 12px; background: var(--el-bg-color-page); border-radius: 6px; max-height: 400px; overflow: auto;">
-                                        <iframe
-                                            :srcdoc="event.body"
+                                    <div v-if="expandedReplies[event.replyIndex]"
+                                        style="margin-top: 10px; padding: 12px; background: var(--el-bg-color-page); border-radius: 6px; max-height: 400px; overflow: auto;">
+                                        <iframe :srcdoc="event.body"
                                             style="width: 100%; min-height: 200px; border: none; background: white; border-radius: 4px;"
-                                            sandbox="allow-same-origin"
-                                        ></iframe>
+                                            sandbox="allow-same-origin"></iframe>
                                     </div>
                                 </div>
                             </div>
@@ -1034,12 +1075,8 @@
                     </el-timeline-item>
 
                     <!-- Waiting tag if no replies -->
-                    <el-timeline-item
-                        v-if="!activeCandidate.ReplyHistory || activeCandidate.ReplyHistory.length === 0"
-                        timestamp="Attente"
-                        placement="top"
-                        type="info"
-                    >
+                    <el-timeline-item v-if="!activeCandidate.ReplyHistory || activeCandidate.ReplyHistory.length === 0"
+                        timestamp="Attente" placement="top" type="info">
                         <el-empty description="Pas de réponse reçue" :image-size="40" style="padding: 10px;"></el-empty>
                     </el-timeline-item>
                 </el-timeline>
@@ -1047,12 +1084,10 @@
 
             <template #footer>
                 <div style="display: flex; gap: 12px; width: 100%;">
-                    <el-button 
-                        type="primary" 
-                        style="flex: 1;" 
-                        @click="handleMailto"
-                    >
-                        <el-icon style="margin-right: 4px;"><Message /></el-icon>
+                    <el-button type="primary" style="flex: 1;" @click="handleMailto">
+                        <el-icon style="margin-right: 4px;">
+                            <Message />
+                        </el-icon>
                         Répondre par e-mail
                     </el-button>
                     <el-button @click="drawerVisible = false" style="flex: 1;">Fermer</el-button>
@@ -1061,21 +1096,13 @@
         </el-drawer>
 
         <!-- Confirm Send Campaign Dialog -->
-        <el-dialog
-            v-model="confirmSendDialogVisible"
-            title="Lancer la campagne d'envoi"
-            width="400px"
-        >
+        <el-dialog v-model="confirmSendDialogVisible" title="Lancer la campagne d'envoi" width="400px">
             <div style="padding: 10px 0;">
                 <el-form label-position="top">
                     <el-form-item label="Modèle d'e-mail à envoyer">
                         <el-select v-model="sendTemplateId" placeholder="Choisir un modèle" style="width: 100%;">
-                            <el-option 
-                                v-for="t in templates" 
-                                :key="t.id" 
-                                :label="t.name + ' (' + t.type.toUpperCase() + ')'" 
-                                :value="t.id" 
-                            />
+                            <el-option v-for="t in templates" :key="t.id"
+                                :label="t.name + ' (' + t.type.toUpperCase() + ')'" :value="t.id" />
                         </el-select>
                     </el-form-item>
                 </el-form>
@@ -1087,32 +1114,24 @@
                 <div style="display: flex; gap: 12px; justify-content: flex-end;">
                     <el-button @click="confirmSendDialogVisible = false">Annuler</el-button>
                     <el-button type="success" @click="startSendCampaign">
-                        <el-icon style="margin-right: 4px;"><Promotion /></el-icon> Confirmer et Envoyer
+                        <el-icon style="margin-right: 4px;">
+                            <Promotion />
+                        </el-icon> Confirmer et Envoyer
                     </el-button>
                 </div>
             </template>
         </el-dialog>
 
         <!-- Send Campaign Progress Dialog -->
-        <el-dialog
-            v-model="sendDialogVisible"
-            title="Campagne d'envoi de candidatures"
-            width="500px"
-            :close-on-click-modal="false"
-            :close-on-press-escape="false"
-            :show-close="!sendProgress.inProgress"
-        >
+        <el-dialog v-model="sendDialogVisible" title="Campagne d'envoi de candidatures" width="500px"
+            :close-on-click-modal="false" :close-on-press-escape="false" :show-close="!sendProgress.inProgress">
             <div style="text-align: center; padding: 10px 0;">
                 <h4 style="margin-bottom: 12px;">Envoi en cours...</h4>
-                
-                <el-progress 
-                    :percentage="sendPercentage" 
+
+                <el-progress :percentage="sendPercentage"
                     :status="sendProgress.failureCount > 0 ? 'warning' : sendPercentage === 100 ? 'success' : ''"
-                    :stroke-width="12"
-                    striped
-                    striped-flow
-                />
-                
+                    :stroke-width="12" striped striped-flow />
+
                 <el-row :gutter="20" style="margin-top: 20px; font-weight: bold;">
                     <el-col :span="8">
                         <div style="color: var(--el-text-color-regular); font-size: 12px;">Total</div>
@@ -1120,90 +1139,85 @@
                     </el-col>
                     <el-col :span="8">
                         <div style="color: var(--el-color-success); font-size: 12px;">Succès</div>
-                        <div style="font-size: 18px; color: var(--el-color-success);">{[ sendProgress.successCount ]}</div>
+                        <div style="font-size: 18px; color: var(--el-color-success);">{[ sendProgress.successCount ]}
+                        </div>
                     </el-col>
                     <el-col :span="8">
                         <div style="color: var(--el-color-danger); font-size: 12px;">Échecs</div>
-                        <div style="font-size: 18px; color: var(--el-color-danger);">{[ sendProgress.failureCount ]}</div>
+                        <div style="font-size: 18px; color: var(--el-color-danger);">{[ sendProgress.failureCount ]}
+                        </div>
                     </el-col>
                 </el-row>
 
-                <el-scrollbar 
-                    height="160px" 
-                    class="terminal-box"
-                    ref="scrollbarRef"
-                >
-                    <div v-for="(logLine, idx) in logLines" :key="idx" style="margin-bottom: 6px; font-size: 13px; line-height: 1.4;">
+                <el-scrollbar height="160px" class="terminal-box" ref="scrollbarRef">
+                    <div v-for="(logLine, idx) in logLines" :key="idx"
+                        style="margin-bottom: 6px; font-size: 13px; line-height: 1.4;">
                         <el-text :type="getLogType(logLine)">{[ logLine ]}</el-text>
                     </div>
                 </el-scrollbar>
             </div>
-            
+
             <template #footer>
-                <el-button 
-                    type="primary" 
-                    :disabled="sendProgress.inProgress" 
-                    @click="sendDialogVisible = false"
-                >
+                <el-button type="primary" :disabled="sendProgress.inProgress" @click="sendDialogVisible = false">
                     Fermer
                 </el-button>
             </template>
         </el-dialog>
 
         <!-- Variables Help Dialog -->
-        <el-dialog
-            v-model="showVariablesHelp"
-            title="Comment fonctionnent les variables de fusion ?"
-            width="550px"
-        >
+        <el-dialog v-model="showVariablesHelp" title="Comment fonctionnent les variables de fusion ?" width="550px">
             <div style="line-height: 1.6; font-size: 14px;">
-                <p>Les variables de fusion vous permettent de personnaliser automatiquement le contenu de vos e-mails pour chaque destinataire de votre fichier CSV.</p>
-                
-                <h5 style="margin: 16px 0 8px 0; font-size: 14px; color: var(--el-text-color-primary);">Variables de contact</h5>
+                <p>Les variables de fusion vous permettent de personnaliser automatiquement le contenu de vos e-mails
+                    pour chaque destinataire de votre fichier CSV.</p>
+
+                <h5 style="margin: 16px 0 8px 0; font-size: 14px; color: var(--el-text-color-primary);">Variables de
+                    contact</h5>
                 <ul>
                     <li><code>{[ varsHelp.FirstName ]}</code> : Insère le prénom du destinataire.</li>
                     <li><code>{[ varsHelp.LastName ]}</code> : Insère le nom du destinataire.</li>
                     <li><code>{[ varsHelp.Company ]}</code> : Insère le nom de l'entreprise.</li>
                     <li><code>{[ varsHelp.Position ]}</code> : Insère le poste du contact (ex: RH).</li>
-                    <li><code>{[ varsHelp.SenderName ]}</code> : Insère votre nom d'expéditeur configuré dans les paramètres.</li>
+                    <li><code>{[ varsHelp.SenderName ]}</code> : Insère votre nom d'expéditeur configuré dans les
+                        paramètres.</li>
                 </ul>
 
-                <h5 style="margin: 16px 0 8px 0; font-size: 14px; color: var(--el-text-color-primary);">Variables de liens configurés</h5>
-                <p>Dans l'onglet de droite, vous pouvez créer des liens nommés (ex: Portfolio, Github). Pour les insérer :</p>
+                <h5 style="margin: 16px 0 8px 0; font-size: 14px; color: var(--el-text-color-primary);">Variables de
+                    liens configurés</h5>
+                <p>Dans l'onglet de droite, vous pouvez créer des liens nommés (ex: Portfolio, Github). Pour les insérer
+                    :</p>
                 <ul>
-                    <li>Utilisez la syntaxe <code>{[ varsHelp.LinksVotreClef ]}</code> (ex: <code>{[ varsHelp.LinksPortfolio ]}</code>).</li>
-                    <li><strong>Dans un mail HTML</strong> : Cela générera automatiquement un lien hypertexte bleu et cliquable avec le texte du lien.</li>
-                    <li><strong>Dans un mail Texte brut</strong> : Cela affichera le texte du lien suivi de l'URL entre parenthèses.</li>
+                    <li>Utilisez la syntaxe <code>{[ varsHelp.LinksVotreClef ]}</code> (ex:
+                        <code>{[ varsHelp.LinksPortfolio ]}</code>).</li>
+                    <li><strong>Dans un mail HTML</strong> : Cela générera automatiquement un lien hypertexte bleu et
+                        cliquable avec le texte du lien.</li>
+                    <li><strong>Dans un mail Texte brut</strong> : Cela affichera le texte du lien suivi de l'URL entre
+                        parenthèses.</li>
                 </ul>
             </div>
             <template #footer>
                 <el-button type="primary" @click="showVariablesHelp = false">Compris</el-button>
             </template>
         </el-dialog>
-        
+
         <!-- Dialog for Import Recipients List -->
-        <el-dialog
-            v-model="importDialogVisible"
-            title="Importer une liste d'adresses e-mail"
-            width="500px"
-        >
+        <el-dialog v-model="importDialogVisible" title="Importer une liste d'adresses e-mail" width="500px">
             <div style="padding: 10px 0;">
-                <div style="font-size: 13px; color: var(--el-text-color-regular); margin-bottom: 12px; line-height: 1.4;">
-                    Collez ici votre liste d'e-mails (séparés par un retour à la ligne, une virgule ou un point-virgule).
+                <div
+                    style="font-size: 13px; color: var(--el-text-color-regular); margin-bottom: 12px; line-height: 1.4;">
+                    Collez ici votre liste d'e-mails (séparés par un retour à la ligne, une virgule ou un
+                    point-virgule).
                     Les adresses e-mail valides seront automatiquement détectées et ajoutées au tableau.
                 </div>
-                <el-input
-                    v-model="importTextarea"
-                    type="textarea"
-                    :rows="8"
-                    placeholder="exemple1@domaine.com&#10;exemple2@domaine.com, exemple3@domaine.com; exemple4@domaine.com"
-                />
+                <el-input v-model="importTextarea" type="textarea" :rows="8"
+                    placeholder="exemple1@domaine.com&#10;exemple2@domaine.com, exemple3@domaine.com; exemple4@domaine.com" />
             </div>
             <template #footer>
                 <div style="display: flex; gap: 12px; justify-content: flex-end;">
                     <el-button @click="importDialogVisible = false">Annuler</el-button>
                     <el-button type="primary" @click="processImport">
-                        <el-icon style="margin-right: 4px;"><Upload /></el-icon> Importer
+                        <el-icon style="margin-right: 4px;">
+                            <Upload />
+                        </el-icon> Importer
                     </el-button>
                 </div>
             </template>
@@ -1218,12 +1232,12 @@
 
     <script>
         // Data injected from Go template
-        const rawCandidates = {{.ItemsJSON}};
-        const rawReplies = {{.RepliesJSON}};
-        const rawSettings = {{.SettingsJSON}};
-        const rawTemplates = {{.TemplatesJSON}};
-        const rawAttachments = {{.AttachmentsJSON}};
-        const rawEnv = {{.EnvJSON}};
+        const rawCandidates = {{.ItemsJSON }};
+        const rawReplies = {{.RepliesJSON }};
+        const rawSettings = {{.SettingsJSON }};
+        const rawTemplates = {{.TemplatesJSON }};
+        const rawAttachments = {{.AttachmentsJSON }};
+        const rawEnv = {{.EnvJSON }};
 
         const { createApp, ref, computed, nextTick, shallowRef, watch, onMounted, onBeforeUnmount } = Vue;
 
@@ -1237,13 +1251,13 @@
 
                 const candidates = ref(rawCandidates || []);
                 const replies = ref(rawReplies || []);
-                
+
                 const searchQuery = ref('');
                 const statusFilter = ref('all');
-                
+
                 const drawerVisible = ref(false);
                 const activeCandidate = ref({});
-                
+
                 const isSyncing = ref(false);
                 const loadingTable = ref(false);
                 const autoSyncEnabled = ref(false);
@@ -1280,13 +1294,13 @@
                 }, { deep: true });
 
                 const weekDays = [
-                    { key: 'monday',    label: 'Lundi' },
-                    { key: 'tuesday',   label: 'Mardi' },
+                    { key: 'monday', label: 'Lundi' },
+                    { key: 'tuesday', label: 'Mardi' },
                     { key: 'wednesday', label: 'Mercredi' },
-                    { key: 'thursday',  label: 'Jeudi' },
-                    { key: 'friday',    label: 'Vendredi' },
-                    { key: 'saturday',  label: 'Samedi' },
-                    { key: 'sunday',    label: 'Dimanche' },
+                    { key: 'thursday', label: 'Jeudi' },
+                    { key: 'friday', label: 'Vendredi' },
+                    { key: 'saturday', label: 'Samedi' },
+                    { key: 'sunday', label: 'Dimanche' },
                 ];
 
                 // Config variables
@@ -1294,7 +1308,7 @@
                 if (!settings.value.links) {
                     settings.value.links = [];
                 }
-                
+
                 // Templates list & active template
                 const templates = ref(rawTemplates || []);
                 const selectedTemplateId = ref(templates.value.length > 0 ? templates.value[0].id : '');
@@ -1348,10 +1362,10 @@
 
                 const insertVariable = (varName) => {
                     if (!activeTemplate.value) return;
-                    
+
                     const wrapper = document.getElementById('bodyTextarea');
                     const textarea = wrapper ? wrapper.querySelector('textarea') : null;
-                    
+
                     let textToInsert = '';
                     if (varName === 'FirstName') textToInsert = '{' + '{.FirstName}' + '}';
                     else if (varName === 'LastName') textToInsert = '{' + '{.LastName}' + '}';
@@ -1362,11 +1376,11 @@
                         const linkKey = varName.replace('link_', '');
                         textToInsert = '{' + '{.Links.' + linkKey + '}' + '}';
                     }
-                    
+
                     if (!textToInsert) return;
 
                     const currentText = activeTemplate.value.body || '';
-                    
+
                     // Fallback to end of text if lastCaretPos is out of range or not set
                     let pos = lastCaretPos.value;
                     if (pos < 0 || pos > currentText.length) {
@@ -1374,7 +1388,7 @@
                     }
 
                     activeTemplate.value.body = currentText.substring(0, pos) + textToInsert + currentText.substring(pos);
-                    
+
                     const newPos = pos + textToInsert.length;
                     lastCaretPos.value = newPos;
 
@@ -1388,7 +1402,7 @@
 
                 const handleDeleteTemplate = () => {
                     if (templates.value.length <= 1) return;
-                    
+
                     const idx = templates.value.findIndex(t => t.id === selectedTemplateId.value);
                     if (idx !== -1) {
                         templates.value.splice(idx, 1);
@@ -1406,7 +1420,7 @@
                     const text = importTextarea.value || '';
                     const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
                     const matches = text.match(emailRegex) || [];
-                    
+
                     if (matches.length === 0) {
                         ElementPlus.ElNotification({
                             title: 'Aucun e-mail trouvé',
@@ -1416,10 +1430,10 @@
                         });
                         return;
                     }
-                    
+
                     const existingEmails = new Set(editableCandidates.value.map(c => c.Email.toLowerCase().trim()));
                     let importedCount = 0;
-                    
+
                     matches.forEach(email => {
                         const cleanedEmail = email.trim();
                         if (!existingEmails.has(cleanedEmail.toLowerCase())) {
@@ -1434,10 +1448,10 @@
                             importedCount++;
                         }
                     });
-                    
+
                     importDialogVisible.value = false;
                     importTextarea.value = '';
-                    
+
                     ElementPlus.ElNotification({
                         title: 'Importation réussie',
                         message: `${importedCount} nouvelle(s) adresse(s) e-mail ajoutée(s) au tableau (${matches.length - importedCount} doublons ignorés).`,
@@ -1594,7 +1608,7 @@
                 const handleRemoveLink = (idx) => {
                     settings.value.links.splice(idx, 1);
                 };
-                
+
                 // Attachments List state
                 const attachmentsList = ref(rawAttachments || []);
                 const isSaving = ref(false);
@@ -1699,16 +1713,16 @@
                         const email = item.Email.toLowerCase();
                         const company = (item.Company || '').toLowerCase();
                         const query = searchQuery.value.toLowerCase();
-                        
+
                         const matchesSearch = name.includes(query) || email.includes(query) || company.includes(query);
-                        
+
                         let matchesFilter = true;
                         if (statusFilter.value === 'waiting') {
                             matchesFilter = !item.HasReply;
                         } else if (statusFilter.value === 'replied') {
                             matchesFilter = item.HasReply;
                         }
-                        
+
                         return matchesSearch && matchesFilter;
                     });
                 });
@@ -1727,7 +1741,7 @@
                     try {
                         const response = await fetch('/sync', { method: 'POST' });
                         const result = await response.json();
-                        
+
                         if (response.ok && result.status === 'success') {
                             ElementPlus.ElNotification({
                                 title: 'Succès',
@@ -2204,7 +2218,7 @@
                 const startSendCampaign = async () => {
                     confirmSendDialogVisible.value = false;
                     try {
-                        const response = await fetch('/send', { 
+                        const response = await fetch('/send', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json'
@@ -2217,7 +2231,7 @@
                             const errData = await response.text();
                             throw new Error(errData || 'Erreur de démarrage');
                         }
-                        
+
                         sendDialogVisible.value = true;
                         pollSendStatus();
                     } catch (error) {
@@ -2241,7 +2255,7 @@
                                 consecutiveErrors = 0;
                                 const data = await response.json();
                                 sendProgress.value = data;
-                                
+
                                 // Scroll log terminal to the bottom via Element Plus Scrollbar Ref
                                 nextTick(() => {
                                     if (scrollbarRef.value) {
@@ -2423,4 +2437,5 @@
 
     </script>
 </body>
+
 </html>
