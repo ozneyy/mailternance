@@ -1,4 +1,4 @@
-package imap
+package mail
 
 import (
 	"bytes"
@@ -11,14 +11,14 @@ import (
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
 	"github.com/emersion/go-message/mail"
-	"github.com/ozneyy/mailternance/internal/email"
-	"github.com/ozneyy/mailternance/internal/storage"
+	"github.com/ozneyy/mailternance/backend/storage"
+	"github.com/ozneyy/mailternance/backend/templates"
 )
 
 // SyncReplies se connecte en IMAP et cherche les réponses
-func SyncReplies(cfg storage.Config) (int, error) {
+func SyncReplies(cfg templates.Config) (int, error) {
 	log.Printf("[INFO] Chargement des destinataires depuis %s...", cfg.CSVPath)
-	recipients, err := email.LoadRecipients(cfg.CSVPath)
+	recipients, err := LoadRecipients(cfg.CSVPath)
 	if err != nil {
 		return 0, fmt.Errorf("erreur lecture CSV : %w", err)
 	}
@@ -39,7 +39,7 @@ func SyncReplies(cfg storage.Config) (int, error) {
 	replies, err := storage.LoadReplies("replies.json")
 	if err != nil {
 		log.Printf("[WARNING] Impossible de charger replies.json : %v", err)
-		replies = []storage.Reply{}
+		replies = []templates.Reply{}
 	} else {
 		log.Printf("[INFO] %d réponses déjà stockées localement", len(replies))
 	}
@@ -194,7 +194,7 @@ func SyncReplies(cfg storage.Config) (int, error) {
 			finalBody = string(b)
 		}
 
-		newReply := storage.Reply{
+		newReply := templates.Reply{
 			Email:   senderEmail,
 			Subject: msg.Envelope.Subject,
 			Date:    msg.Envelope.Date,

@@ -1,19 +1,19 @@
 services:
-  mailsender:
+  mailternance:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: mailsender
+    container_name: mailternance
     restart: unless-stopped
 
     # Port : HOST:CONTAINER
-    # Le dashboard sera accessible sur http://<IP_OCI>:17890
+    
     ports:
       - "17890:17890"
 
     # Fichiers sensibles et données persistantes montés en volume
     volumes:
-      # Credentials Gmail (OBLIGATOIRE — ne jamais commiter)
+      # Credentials Gmail 
       - ./.env:/app/.env:ro
       # Liste des destinataires (lue et écrite par l'app)
       - ./recipients.csv:/app/recipients.csv
@@ -23,7 +23,9 @@ services:
       - ./settings.json:/app/settings.json
       - ./templates.json:/app/templates.json
       # Pièces jointes (CV, etc.)
-      - ./attachments:/app/attachments
+      - ./web/attachments:/app/web/attachments
+      # Logs de l'application
+      - ./logs:/app/logs
 
     environment:
       # Forcer le port web sur 17890

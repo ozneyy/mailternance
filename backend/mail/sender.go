@@ -1,4 +1,4 @@
-package email
+package mail
 
 import (
 	"encoding/base64"
@@ -6,7 +6,7 @@ import (
 	"net/smtp"
 	"strings"
 
-	"github.com/ozneyy/mailternance/internal/storage"
+	"github.com/ozneyy/mailternance/backend/templates"
 )
 
 // IsValidEmail vérifie que l'adresse email a un format basique valide (contient @ et un point après @)
@@ -21,7 +21,7 @@ func IsValidEmail(email string) bool {
 }
 
 // BuildMultipartMessage construit un message MIME multipart contenant le corps TEXTE BRUT et les pièces jointes
-func BuildMultipartMessage(senderName, senderEmail, recipientEmail, subject, bodyText string, attachments []storage.Attachment) []byte {
+func BuildMultipartMessage(senderName, senderEmail, recipientEmail, subject, bodyText string, attachments []templates.Attachment) []byte {
 	var builder strings.Builder
 	boundary := "candidature-multipart-boundary-12345"
 

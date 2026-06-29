@@ -8,23 +8,24 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ozneyy/mailternance/internal/storage"
+	"github.com/ozneyy/mailternance/backend/templates"
 )
 
 var (
 	configMutex  sync.RWMutex
-	activeConfig storage.Config
+	activeConfig templates.Config
 )
 
 // GetActiveConfig retourne la configuration active de manière thread-safe
-func GetActiveConfig() storage.Config {
+// GetActiveConfig handles config reads concurrently.
+func GetActiveConfig() templates.Config {
 	configMutex.RLock()
 	defer configMutex.RUnlock()
 	return activeConfig
 }
 
 // SetActiveConfig définit la configuration active de manière thread-safe
-func SetActiveConfig(cfg storage.Config) {
+func SetActiveConfig(cfg templates.Config) {
 	configMutex.Lock()
 	activeConfig = cfg
 	configMutex.Unlock()
@@ -57,8 +58,8 @@ func LoadEnv(filename string) {
 }
 
 // LoadConfig extrait la configuration depuis les variables d'environnement
-func LoadConfig() (storage.Config, error) {
-	var cfg storage.Config
+func LoadConfig() (templates.Config, error) {
+	var cfg templates.Config
 
 	cfg.SMTPHost = getEnvOr("SMTP_HOST", "smtp.gmail.com")
 	cfg.SMTPPort = getEnvOr("SMTP_PORT", "587")
@@ -67,7 +68,7 @@ func LoadConfig() (storage.Config, error) {
 	cfg.Port = getEnvOr("PORT", "8080")
 	cfg.SMTPEmail = os.Getenv("SMTP_EMAIL")
 	cfg.SMTPPassword = os.Getenv("SMTP_PASSWORD")
-	cfg.SenderName = getEnvOr("SENDER_NAME", "Mailsender")
+	cfg.SenderName = getEnvOr("SENDER_NAME", "Mailternance")
 	cfg.CSVPath = getEnvOr("CSV_PATH", "recipients.csv")
 	cfg.TemplatePath = getEnvOr("TEMPLATE_PATH", "template.txt")
 

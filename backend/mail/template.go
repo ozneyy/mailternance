@@ -1,15 +1,15 @@
-package email
+package mail
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/ozneyy/mailternance/internal/storage"
+	"github.com/ozneyy/mailternance/backend/templates"
 )
 
 // PreprocessTemplateBody convertit proprement les accolades simples en double accolades
 // sans altérer les accolades doubles déjà existantes.
-func PreprocessTemplateBody(body string, links []storage.Link) string {
+func PreprocessTemplateBody(body string, links []templates.Link) string {
 	// 1. Sauvegarder les doubles accolades valides dans des jetons uniques
 	body = strings.ReplaceAll(body, "{{.FirstName}}", "##FN##")
 	body = strings.ReplaceAll(body, "{{.LastName}}", "##LN##")

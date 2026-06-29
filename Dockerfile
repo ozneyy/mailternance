@@ -10,13 +10,13 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Copier le reste du code source
-COPY cmd/ ./cmd/
-COPY internal/ ./internal/
-COPY assets/ ./assets/
+COPY main.go ./
+COPY backend/ ./backend/
+COPY web/ ./web/
 
 # Compiler un binaire statique pour Linux (pas de CGO)
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -ldflags="-w -s" -o mailsender ./cmd/mailsender
+    go build -ldflags="-w -s" -o mailternance main.go
 
 # ─────────────────────────────────────────────
 #  Stage 2 : Image finale minimale
@@ -31,14 +31,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Copier le binaire compilé
-COPY --from=builder /build/mailsender .
+COPY --from=builder /build/mailternance .
 
 # Copier les assets statiques
-COPY assets/ ./assets/
+COPY web/ ./web/
 
 # Créer les dossiers et fichiers de données persistants
 # (ils seront montés en volume en production)
-RUN mkdir -p attachments && \
+RUN mkdir -p web/attachments logs && \
     echo "[]" > sent_history.json && \
     echo "[]" > replies.json && \
     echo '{"subject":"","portfolioUrl":"","links":[]}' > settings.json && \
@@ -49,4 +49,4 @@ RUN mkdir -p attachments && \
 EXPOSE 17890
 
 # Démarrer en mode web (dashboard)
-ENTRYPOINT ["./mailsender", "-web"]
+ENTRYPOINT ["./mailternance", "-web"]

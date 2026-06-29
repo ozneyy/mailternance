@@ -1,4 +1,4 @@
-package web
+package server
 
 import (
 	"bufio"
@@ -18,10 +18,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ozneyy/mailternance/internal/config"
-	emailpkg "github.com/ozneyy/mailternance/internal/email"
-	"github.com/ozneyy/mailternance/internal/imap"
-	"github.com/ozneyy/mailternance/internal/storage"
+	"github.com/ozneyy/mailternance/backend/config"
+	"github.com/ozneyy/mailternance/backend/mail"
+	"github.com/ozneyy/mailternance/backend/storage"
+	"github.com/ozneyy/mailternance/backend/templates"
 )
 
 var (
@@ -32,6 +32,11 @@ var (
 	sendLastLog      string
 	sendSuccessCount int
 	sendFailureCount int
+
+	autoSyncMutex    sync.Mutex
+	autoSyncEnabled  bool
+	autoSyncInterval int // in seconds
+	autoSyncStopChan chan struct{}
 )
 
 // responseWriter wrapper pour capturer le status code HTTP
@@ -56,8 +61,157 @@ func logRequest(next http.Handler) http.Handler {
 	})
 }
 
+// InitializeAutoSync charge la configuration persistée et lance le daemon si activé
+func InitializeAutoSync() {
+	c := storage.LoadAutoSync()
+	if c.Enabled {
+		startAutoSync(c.Interval)
+	} else {
+		autoSyncMutex.Lock()
+		autoSyncEnabled = false
+		autoSyncInterval = c.Interval
+		autoSyncMutex.Unlock()
+	}
+}
+
+func startAutoSync(intervalSecs int) {
+	autoSyncMutex.Lock()
+	defer autoSyncMutex.Unlock()
+
+	if autoSyncStopChan != nil {
+		close(autoSyncStopChan)
+		autoSyncStopChan = nil
+	}
+
+	autoSyncEnabled = true
+	autoSyncInterval = intervalSecs
+	autoSyncStopChan = make(chan struct{})
+
+	stopChan := autoSyncStopChan
+
+	go func() {
+		ticker := time.NewTicker(time.Duration(intervalSecs) * time.Second)
+		defer ticker.Stop()
+
+		log.Printf("[INFO] Auto-sync IMAP démarré. Intervalle : %d secondes", intervalSecs)
+
+		for {
+			select {
+			case <-ticker.C:
+				cfg := config.GetActiveConfig()
+				log.Println("[INFO] Auto-sync IMAP en cours...")
+				count, err := mail.SyncReplies(cfg)
+				if err != nil {
+					log.Printf("[ERROR] Auto-sync IMAP a échoué : %v", err)
+				} else if count > 0 {
+					log.Printf("[SUCCESS] Auto-sync IMAP : %d nouvelle(s) réponse(s) synchronisée(s)", count)
+				}
+			case <-stopChan:
+				log.Println("[INFO] Auto-sync IMAP arrêté")
+				return
+			}
+		}
+	}()
+}
+
+func stopAutoSync() {
+	autoSyncMutex.Lock()
+	defer autoSyncMutex.Unlock()
+
+	autoSyncEnabled = false
+	if autoSyncStopChan != nil {
+		close(autoSyncStopChan)
+		autoSyncStopChan = nil
+	}
+}
+
+// getDashboardData charge et prépare l'ensemble des données du tableau de bord
+func getDashboardData(cfg templates.Config) ([]templates.DashboardItem, []templates.Reply, error) {
+	// Charger la liste des destinataires
+	recipients, err := mail.LoadRecipients(cfg.CSVPath)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Charger les réponses synchronisées
+	replies, err := storage.LoadReplies("replies.json")
+	if err != nil {
+		replies = []templates.Reply{}
+	}
+
+	// Charger l'historique global des envois
+	sentHistory := storage.LoadSentHistory()
+
+	// Préparer les items du dashboard
+	var items []templates.DashboardItem
+
+	for _, rec := range recipients {
+		email := rec["Email"]
+		if email == "" {
+			continue
+		}
+
+		// Filtrer les envois pour cet email
+		var candidateSentHistory []templates.SentEvent
+		for _, sh := range sentHistory {
+			if strings.ToLower(sh.Email) == strings.ToLower(email) {
+				candidateSentHistory = append(candidateSentHistory, templates.SentEvent{
+					Subject: sh.Subject,
+					Date:    sh.Date,
+				})
+			}
+		}
+
+		// Filtrer TOUTES les réponses pour cet email (triées par date croissante)
+		var candidateReplies []templates.ReplyEvent
+		for _, rep := range replies {
+			if strings.ToLower(rep.Email) == strings.ToLower(email) {
+				candidateReplies = append(candidateReplies, templates.ReplyEvent{
+					Subject: rep.Subject,
+					Date:    rep.Date,
+					Snippet: rep.Snippet,
+					Body:    rep.Body,
+				})
+			}
+		}
+		// Trier les réponses par date croissante (du plus ancien au plus récent)
+		for i := 0; i < len(candidateReplies)-1; i++ {
+			for j := i + 1; j < len(candidateReplies); j++ {
+				if candidateReplies[j].Date.Before(candidateReplies[i].Date) {
+					candidateReplies[i], candidateReplies[j] = candidateReplies[j], candidateReplies[i]
+				}
+			}
+		}
+
+		item := templates.DashboardItem{
+			Email:       email,
+			FirstName:   rec["FirstName"],
+			LastName:    rec["LastName"],
+			Company:     rec["Company"],
+			Position:    rec["Position"],
+			SentCount:   len(candidateSentHistory),
+			SentHistory: candidateSentHistory,
+		}
+
+		if len(candidateReplies) > 0 {
+			latestReply := candidateReplies[len(candidateReplies)-1]
+			item.HasReply = true
+			item.ReplyCount = len(candidateReplies)
+			item.ReplySubject = latestReply.Subject
+			item.ReplySnippet = latestReply.Snippet
+			item.ReplyDate = latestReply.Date.Format("02/01/2006 15:04")
+			item.ReplyHistory = candidateReplies
+		}
+
+		items = append(items, item)
+	}
+
+	return items, replies, nil
+}
+
 // RunWebServer lance le serveur web HTTP
 func RunWebServer() {
+	InitializeAutoSync()
 	cfg := config.GetActiveConfig()
 	log.Printf("[INFO] Mode Serveur Web : Lancement sur http://0.0.0.0:%s", cfg.Port)
 	log.Printf("[INFO] Chargement des données...")
@@ -92,8 +246,13 @@ func RunWebServer() {
 	// Route pour la synchronisation IMAP
 	http.HandleFunc("/sync", handleSync)
 
-	// Route pour les fichiers statiques (ex: /web/style.css)
-	http.Handle("/web/", logRequest(http.StripPrefix("/web/", http.FileServer(http.Dir("assets/web")))))
+	// Routes d'API pour le rafraîchissement dynamique (réactivité de l'interface)
+	http.HandleFunc("/api/candidates", handleAPICandidates)
+	http.HandleFunc("/api/replies", handleAPIReplies)
+	http.HandleFunc("/api/auto-sync", handleAPIAutoSync)
+
+	// Route pour les fichiers statiques (ex: /static/css/style.css)
+	http.Handle("/static/", logRequest(http.StripPrefix("/static/", http.FileServer(http.Dir("web/static")))))
 
 	log.Printf("[INFO] Serveur web démarré sur http://0.0.0.0:%s", cfg.Port)
 	log.Fatal(http.ListenAndServe(":"+cfg.Port, logRequest(http.DefaultServeMux)))
@@ -110,22 +269,11 @@ func handleDashboard(w http.ResponseWriter, r *http.Request) {
 
 	cfg := config.GetActiveConfig()
 
-	// Charger la liste des destinataires
-	recipients, err := emailpkg.LoadRecipients(cfg.CSVPath)
+	items, replies, err := getDashboardData(cfg)
 	if err != nil {
-		log.Printf("[ERROR] Échec chargement CSV (%s) : %v", cfg.CSVPath, err)
-		http.Error(w, fmt.Sprintf("Erreur chargement CSV : %v", err), http.StatusInternalServerError)
+		log.Printf("[ERROR] Échec chargement données dashboard : %v", err)
+		http.Error(w, fmt.Sprintf("Erreur chargement données dashboard : %v", err), http.StatusInternalServerError)
 		return
-	}
-	log.Printf("[INFO] %d destinataires chargés depuis %s", len(recipients), cfg.CSVPath)
-
-	// Charger les réponses synchronisées
-	replies, err := storage.LoadReplies("replies.json")
-	if err != nil {
-		log.Printf("[WARNING] Impossible de charger replies.json : %v", err)
-		replies = []storage.Reply{}
-	} else {
-		log.Printf("[INFO] %d réponses chargées depuis replies.json", len(replies))
 	}
 
 	// Charger les paramètres (sujet, portfolio)
@@ -133,7 +281,7 @@ func handleDashboard(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[INFO] Paramètres chargés — Sujet: %s, Portfolio: %s, Liens: %d", settings.Subject, settings.PortfolioURL, len(settings.Links))
 
 	// Charger la liste des pièces jointes actuelles
-	attachments, err := getAttachmentsList()
+	attachments, err := storage.GetAttachmentsList()
 	if err != nil {
 		log.Printf("[WARNING] Impossible de lister les pièces jointes : %v", err)
 		attachments = []string{}
@@ -141,90 +289,18 @@ func handleDashboard(w http.ResponseWriter, r *http.Request) {
 		log.Printf("[INFO] %d pièce(s) jointe(s) disponible(s)", len(attachments))
 	}
 
-	// Charger l'historique global des envois
-	sentHistory := storage.LoadSentHistory()
-	log.Printf("[INFO] %d envoi(s) dans l'historique", len(sentHistory))
-
 	// Charger les modèles
 	templatesList := storage.LoadTemplates()
 	log.Printf("[INFO] %d modèle(s) d'e-mail chargé(s)", len(templatesList))
 
-	// Préparer les items du dashboard
-	var items []storage.DashboardItem
 	totalReplies := 0
-
-	for _, rec := range recipients {
-		email := rec["Email"]
-		if email == "" {
-			continue
+	for _, item := range items {
+		if item.HasReply {
+			totalReplies += item.ReplyCount
 		}
-
-		var latestReply *storage.Reply
-		for i := range replies {
-			rep := &replies[i]
-			if strings.ToLower(rep.Email) == strings.ToLower(email) {
-				if latestReply == nil || rep.Date.After(latestReply.Date) {
-					latestReply = rep
-				}
-			}
-		}
-
-		// Filtrer les envois pour cet email
-		var candidateSentHistory []storage.SentEvent
-		for _, sh := range sentHistory {
-			if strings.ToLower(sh.Email) == strings.ToLower(email) {
-				candidateSentHistory = append(candidateSentHistory, storage.SentEvent{
-					Subject: sh.Subject,
-					Date:    sh.Date,
-				})
-			}
-		}
-
-		// Filtrer TOUTES les réponses pour cet email (triées par date croissante)
-		var candidateReplies []storage.ReplyEvent
-		for _, rep := range replies {
-			if strings.ToLower(rep.Email) == strings.ToLower(email) {
-				candidateReplies = append(candidateReplies, storage.ReplyEvent{
-					Subject: rep.Subject,
-					Date:    rep.Date,
-					Snippet: rep.Snippet,
-					Body:    rep.Body,
-				})
-			}
-		}
-		// Trier les réponses par date croissante (du plus ancien au plus récent)
-		for i := 0; i < len(candidateReplies)-1; i++ {
-			for j := i + 1; j < len(candidateReplies); j++ {
-				if candidateReplies[j].Date.Before(candidateReplies[i].Date) {
-					candidateReplies[i], candidateReplies[j] = candidateReplies[j], candidateReplies[i]
-				}
-			}
-		}
-
-		item := storage.DashboardItem{
-			Email:       email,
-			FirstName:   rec["FirstName"],
-			LastName:    rec["LastName"],
-			Company:     rec["Company"],
-			Position:    rec["Position"],
-			SentCount:   len(candidateSentHistory),
-			SentHistory: candidateSentHistory,
-		}
-
-		if len(candidateReplies) > 0 {
-			latestReply := candidateReplies[len(candidateReplies)-1]
-			item.HasReply = true
-			item.ReplyCount = len(candidateReplies)
-			item.ReplySubject = latestReply.Subject
-			item.ReplySnippet = latestReply.Snippet
-			item.ReplyDate = latestReply.Date.Format("02/01/2006 15:04")
-			item.ReplyHistory = candidateReplies
-			totalReplies += len(candidateReplies)
-		}
-
-		items = append(items, item)
 	}
 
+	sentHistory := storage.LoadSentHistory()
 	totalSent := len(sentHistory)
 	totalWaiting := totalSent - totalReplies
 	if totalWaiting < 0 {
@@ -238,7 +314,7 @@ func handleDashboard(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[INFO] Stats dashboard — Envoiés: %d, Réponses: %d, En attente: %d, Taux: %d%%", totalSent, totalReplies, totalWaiting, replyRate)
 
 	// Préparer la structure des variables .env pour l'interface
-	envData := storage.EnvData{
+	envData := templates.EnvData{
 		SMTPHost:     cfg.SMTPHost,
 		SMTPPort:     cfg.SMTPPort,
 		IMAPHost:     cfg.IMAPHost,
@@ -258,7 +334,7 @@ func handleDashboard(w http.ResponseWriter, r *http.Request) {
 	attachmentsBytes, _ := json.Marshal(attachments)
 	envBytes, _ := json.Marshal(envData)
 
-	data := storage.DashboardPageData{
+	data := templates.DashboardPageData{
 		TotalSent:       totalSent,
 		TotalReplies:    totalReplies,
 		TotalWaiting:    totalWaiting,
@@ -272,10 +348,10 @@ func handleDashboard(w http.ResponseWriter, r *http.Request) {
 		EnvJSON:         template.JS(envBytes),
 	}
 
-	tmpl, err := template.ParseFiles("assets/web/dashboard.html")
+	tmpl, err := template.ParseFiles("web/templates/dashboard.html")
 	if err != nil {
-		log.Printf("[ERROR] Échec chargement assets/web/dashboard.html : %v", err)
-		http.Error(w, fmt.Sprintf("Erreur chargement assets/web/dashboard.html : %v", err), http.StatusInternalServerError)
+		log.Printf("[ERROR] Échec chargement web/templates/dashboard.html : %v", err)
+		http.Error(w, fmt.Sprintf("Erreur chargement web/templates/dashboard.html : %v", err), http.StatusInternalServerError)
 		return
 	}
 
@@ -286,6 +362,93 @@ func handleDashboard(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[INFO] Tableau de bord rendu en %s", time.Since(start))
 }
 
+func handleAPICandidates(w http.ResponseWriter, r *http.Request) {
+	cfg := config.GetActiveConfig()
+	items, _, err := getDashboardData(cfg)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"status": "error", "message": err.Error()})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(items)
+}
+
+func handleAPIReplies(w http.ResponseWriter, r *http.Request) {
+	cfg := config.GetActiveConfig()
+	_, replies, err := getDashboardData(cfg)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"status": "error", "message": err.Error()})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(replies)
+}
+
+func handleAPIAutoSync(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method == http.MethodGet {
+		autoSyncMutex.Lock()
+		enabled := autoSyncEnabled
+		interval := autoSyncInterval
+		autoSyncMutex.Unlock()
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":   "success",
+			"enabled":  enabled,
+			"interval": interval,
+		})
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		var req struct {
+			Enabled  bool `json:"enabled"`
+			Interval int  `json:"interval"` // en minutes
+		}
+
+		err := json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{"status": "error", "message": err.Error()})
+			return
+		}
+
+		intervalSecs := req.Interval * 60
+		if intervalSecs <= 0 {
+			intervalSecs = 300
+		}
+
+		err = storage.SaveAutoSync(templates.AutoSyncConfig{
+			Enabled:  req.Enabled,
+			Interval: intervalSecs,
+		})
+		if err != nil {
+			log.Printf("[ERROR] Échec de sauvegarde de la configuration auto-sync : %v", err)
+		}
+
+		if req.Enabled {
+			startAutoSync(intervalSecs)
+		} else {
+			stopAutoSync()
+		}
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":   "success",
+			"enabled":  req.Enabled,
+			"interval": intervalSecs,
+		})
+		return
+	}
+
+	http.Error(w, "Méthode non autorisée", http.StatusMethodNotAllowed)
+}
+
+
 func handleSettings(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Méthode non autorisée", http.StatusMethodNotAllowed)
@@ -293,11 +456,11 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Subject      string                  `json:"subject"`
-		PortfolioURL string                  `json:"portfolioUrl"`
-		Links        []storage.Link          `json:"links"`
-		Templates    []storage.EmailTemplate `json:"templates"`
-		TemplateHTML string                  `json:"templateHtml"`
+		Subject      string                      `json:"subject"`
+		PortfolioURL string                      `json:"portfolioUrl"`
+		Links        []templates.Link            `json:"links"`
+		Templates    []templates.EmailTemplate   `json:"templates"`
+		TemplateHTML string                      `json:"templateHtml"`
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -310,7 +473,7 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 	log.Printf("[INFO] Sauvegarde des paramètres — Sujet: %s, %d liens, %d modèles", req.Subject, len(req.Links), len(req.Templates))
 
 	// Sauvegarder les paramètres dans settings.json
-	settings := storage.Settings{
+	settings := templates.Settings{
 		Subject:      req.Subject,
 		PortfolioURL: req.PortfolioURL,
 		Links:        req.Links,
@@ -424,7 +587,7 @@ func handleDeleteCandidate(w http.ResponseWriter, r *http.Request) {
 	cfg := config.GetActiveConfig()
 
 	// 1. Supprimer du CSV
-	recipients, err := emailpkg.LoadRecipients(cfg.CSVPath)
+	recipients, err := mail.LoadRecipients(cfg.CSVPath)
 	if err == nil {
 		var updatedRecipients []map[string]string
 		for _, rec := range recipients {
@@ -456,7 +619,7 @@ func handleDeleteCandidate(w http.ResponseWriter, r *http.Request) {
 
 	// 2. Supprimer de sent_history.json
 	sentHistory := storage.LoadSentHistory()
-	updatedSentHistory := make([]storage.SentRecord, 0)
+	updatedSentHistory := make([]templates.SentRecord, 0)
 	for _, sh := range sentHistory {
 		if strings.ToLower(strings.TrimSpace(sh.Email)) != targetEmail {
 			updatedSentHistory = append(updatedSentHistory, sh)
@@ -468,7 +631,7 @@ func handleDeleteCandidate(w http.ResponseWriter, r *http.Request) {
 	// 3. Supprimer de replies.json
 	replies, err := storage.LoadReplies("replies.json")
 	if err == nil {
-		updatedReplies := make([]storage.Reply, 0)
+		updatedReplies := make([]templates.Reply, 0)
 		for _, rep := range replies {
 			if strings.ToLower(strings.TrimSpace(rep.Email)) != targetEmail {
 				updatedReplies = append(updatedReplies, rep)
@@ -489,7 +652,7 @@ func handleSaveEnv(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req storage.EnvData
+	var req templates.EnvData
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		log.Printf("[ERROR] Requête /save-env JSON invalide : %v", err)
@@ -603,7 +766,7 @@ func handleUploadAttachment(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	err = os.MkdirAll("attachments", 0755)
+	err = os.MkdirAll("web/attachments", 0755)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"status": "error", "message": "Dossier pièces jointes inaccessible"})
@@ -611,7 +774,7 @@ func handleUploadAttachment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	safeFilename := filepath.Base(header.Filename)
-	out, err := os.Create(filepath.Join("attachments", safeFilename))
+	out, err := os.Create(filepath.Join("web/attachments", safeFilename))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"status": "error", "message": "Impossible d'écrire le fichier"})
@@ -649,7 +812,7 @@ func handleDeleteAttachment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	safeFilename := filepath.Base(req.Filename)
-	path := filepath.Join("attachments", safeFilename)
+	path := filepath.Join("web/attachments", safeFilename)
 
 	err = os.Remove(path)
 	if err != nil {
@@ -674,7 +837,7 @@ func handleSync(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	log.Printf("[INFO] Début synchronisation IMAP — %s:%s", cfg.IMAPHost, cfg.IMAPPort)
 
-	syncedCount, err := imap.SyncReplies(cfg)
+	syncedCount, err := mail.SyncReplies(cfg)
 	if err != nil {
 		log.Printf("[ERROR] Échec de synchronisation IMAP : %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -693,55 +856,8 @@ func handleSync(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// getAttachmentsList lit le dossier attachments/ et retourne la liste des noms de fichiers
-func getAttachmentsList() ([]string, error) {
-	err := os.MkdirAll("attachments", 0755)
-	if err != nil {
-		return nil, err
-	}
-
-	files, err := os.ReadDir("attachments")
-	if err != nil {
-		return nil, err
-	}
-
-	var list []string
-	for _, f := range files {
-		if !f.IsDir() {
-			list = append(list, f.Name())
-		}
-	}
-	return list, nil
-}
-
-// getAttachmentsListBytes lit les fichiers du dossier attachments/ et les renvoie sous forme d'octets
-func getAttachmentsListBytes() ([]storage.Attachment, error) {
-	dirEntries, err := os.ReadDir("attachments")
-	if err != nil {
-		return nil, err
-	}
-
-	var list []storage.Attachment
-	for _, entry := range dirEntries {
-		if entry.IsDir() {
-			continue
-		}
-		path := filepath.Join("attachments", entry.Name())
-		b, errRead := os.ReadFile(path)
-		if errRead != nil {
-			log.Printf("[WARNING] Impossible de lire la pièce jointe %s : %v", entry.Name(), errRead)
-			continue
-		}
-		list = append(list, storage.Attachment{
-			Name:  entry.Name(),
-			Bytes: b,
-		})
-	}
-	return list, nil
-}
-
 // writeEnvFile écrit un nouveau fichier .env propre
-func writeEnvFile(vars storage.EnvData) error {
+func writeEnvFile(vars templates.EnvData) error {
 	file, err := os.Create(".env")
 	if err != nil {
 		return err
@@ -786,7 +902,7 @@ func runCampaignBackground(templateId string) {
 	cfg := config.GetActiveConfig()
 	settings := storage.LoadSettings(cfg)
 
-	attachments, err := getAttachmentsListBytes()
+	attachments, err := storage.GetAttachmentsListBytes()
 	if err != nil {
 		sendMutex.Lock()
 		sendLastLog = "Erreur lecture pièces jointes : " + err.Error()
@@ -796,7 +912,7 @@ func runCampaignBackground(templateId string) {
 
 	// Charger les modèles
 	templatesList := storage.LoadTemplates()
-	var selectedTemplate *storage.EmailTemplate
+	var selectedTemplate *templates.EmailTemplate
 	for i := range templatesList {
 		if templatesList[i].ID == templateId {
 			selectedTemplate = &templatesList[i]
@@ -817,7 +933,7 @@ func runCampaignBackground(templateId string) {
 	}
 
 	isHTML := selectedTemplate.Type == "html"
-	bodyText := emailpkg.PreprocessTemplateBody(selectedTemplate.Body, settings.Links)
+	bodyText := mail.PreprocessTemplateBody(selectedTemplate.Body, settings.Links)
 	tmpl, err := template.New("email").Parse(bodyText)
 	if err != nil {
 		sendMutex.Lock()
@@ -826,7 +942,7 @@ func runCampaignBackground(templateId string) {
 		return
 	}
 
-	recipients, err := emailpkg.LoadRecipients(cfg.CSVPath)
+	recipients, err := mail.LoadRecipients(cfg.CSVPath)
 	if err != nil {
 		sendMutex.Lock()
 		sendLastLog = "Erreur chargement CSV : " + err.Error()
@@ -853,7 +969,7 @@ func runCampaignBackground(templateId string) {
 
 	for i, recipient := range recipients {
 		emailAddr := recipient["Email"]
-		if emailAddr == "" || !emailpkg.IsValidEmail(emailAddr) {
+		if emailAddr == "" || !mail.IsValidEmail(emailAddr) {
 			sendMutex.Lock()
 			sendCurrent = i + 1
 			sendFailureCount++
@@ -895,10 +1011,10 @@ func runCampaignBackground(templateId string) {
 			continue
 		}
 
-		msg := emailpkg.BuildMultipartMessage(cfg.SenderName, cfg.SMTPEmail, emailAddr, selectedTemplate.Subject, bodyBuffer.String(), attachments)
+		msg := mail.BuildMultipartMessage(cfg.SenderName, cfg.SMTPEmail, emailAddr, selectedTemplate.Subject, bodyBuffer.String(), attachments)
 		addr := fmt.Sprintf("%s:%s", cfg.SMTPHost, cfg.SMTPPort)
 
-		err = emailpkg.SendEmail(addr, auth, cfg.SMTPEmail, []string{emailAddr}, msg)
+		err = mail.SendEmail(addr, auth, cfg.SMTPEmail, []string{emailAddr}, msg)
 
 		sendMutex.Lock()
 		sendCurrent = i + 1
@@ -908,7 +1024,7 @@ func runCampaignBackground(templateId string) {
 		} else {
 			sendSuccessCount++
 			sendLastLog += fmt.Sprintf("[%d/%d] SUCCÈS de l'envoi à %s\n", i+1, sendTotal, emailAddr)
-			storage.SaveSentRecord(storage.SentRecord{
+			storage.SaveSentRecord(templates.SentRecord{
 				Email:      emailAddr,
 				Subject:    selectedTemplate.Subject,
 				Date:       time.Now(),

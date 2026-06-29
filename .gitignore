@@ -8,11 +8,12 @@
 
 # --- Données / Runtime ---
 *.log
-mailsender
+mailternance
 sent_history.json
 replies.json
 recipients.csv
 settings.json
+web/attachments/
 
 # --- Go Build Artifacts ---
 *.exe

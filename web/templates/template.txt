@@ -1,0 +1,10 @@
+Bonjour {{if and .FirstName .LastName}}{{.FirstName}} {{.LastName}}{{else if .FirstName}}{{.FirstName}}{{else if .LastName}}{{.LastName}}{{else}}{{end}},
+
+Je me permets de vous contacter afin de vous proposer ma candidature pour un poste en alternance au sein de votre entreprise {{if .Company}}{{.Company}}{{else}}structure{{end}}.
+
+Vous trouverez mon CV ci-joint en pièce jointe. Je vous invite également à consulter mes réalisations en ligne sur mon Portfolio : {{.PortfolioURL}}
+
+Je me tiens à votre entière disposition pour tout entretien futur.
+
+Cordialement,
+{{.SenderName}}

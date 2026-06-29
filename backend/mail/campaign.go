@@ -1,4 +1,4 @@
-package web
+package mail
 
 import (
 	"bytes"
@@ -8,9 +8,9 @@ import (
 	"net/smtp"
 	"time"
 
-	"github.com/ozneyy/mailternance/internal/config"
-	"github.com/ozneyy/mailternance/internal/email"
-	"github.com/ozneyy/mailternance/internal/storage"
+	"github.com/ozneyy/mailternance/backend/config"
+	"github.com/ozneyy/mailternance/backend/storage"
+	"github.com/ozneyy/mailternance/backend/templates"
 )
 
 // RunEmailSender gère la campagne d'envoi d'e-mails (CLI / Cron)
@@ -22,14 +22,14 @@ func RunEmailSender() {
 	settings := storage.LoadSettings(cfg)
 
 	// Charger les pièces jointes
-	attachments, err := getAttachmentsListBytes()
+	attachments, err := storage.GetAttachmentsListBytes()
 	if err != nil {
 		log.Fatalf("[FATAL] Impossible de lire les pièces jointes : %v", err)
 	}
 
 	// Charger les modèles et utiliser le premier modèle par défaut
 	templatesList := storage.LoadTemplates()
-	var selectedTemplate *storage.EmailTemplate
+	var selectedTemplate *templates.EmailTemplate
 	if len(templatesList) > 0 {
 		selectedTemplate = &templatesList[0]
 	}
@@ -39,14 +39,14 @@ func RunEmailSender() {
 	}
 
 	isHTML := selectedTemplate.Type == "html"
-	bodyText := email.PreprocessTemplateBody(selectedTemplate.Body, settings.Links)
+	bodyText := PreprocessTemplateBody(selectedTemplate.Body, settings.Links)
 	tmpl, err := template.New("email").Parse(bodyText)
 	if err != nil {
 		log.Fatalf("[FATAL] Impossible de parser le template %s : %v", selectedTemplate.Name, err)
 	}
 
 	// Charger les destinataires
-	recipients, err := email.LoadRecipients(cfg.CSVPath)
+	recipients, err := LoadRecipients(cfg.CSVPath)
 	if err != nil {
 		log.Fatalf("[FATAL] Impossible de charger le fichier CSV (%s) : %v", cfg.CSVPath, err)
 	}
@@ -69,7 +69,7 @@ func RunEmailSender() {
 			continue
 		}
 
-		if !email.IsValidEmail(emailAddr) {
+		if !IsValidEmail(emailAddr) {
 			log.Printf("[WARNING] Ligne %d sautée : format email invalide (%s)", i+2, emailAddr)
 			failureCount++
 			continue
@@ -103,7 +103,7 @@ func RunEmailSender() {
 			continue
 		}
 
-		msg := email.BuildMultipartMessage(cfg.SenderName, cfg.SMTPEmail, emailAddr, selectedTemplate.Subject, bodyBuffer.String(), attachments)
+		msg := BuildMultipartMessage(cfg.SenderName, cfg.SMTPEmail, emailAddr, selectedTemplate.Subject, bodyBuffer.String(), attachments)
 		addr := fmt.Sprintf("%s:%s", cfg.SMTPHost, cfg.SMTPPort)
 
 		err = smtp.SendMail(addr, auth, cfg.SMTPEmail, []string{emailAddr}, msg)
@@ -113,7 +113,7 @@ func RunEmailSender() {
 		} else {
 			log.Printf("[SUCCESS] E-mail envoyé à %s", emailAddr)
 			successCount++
-			storage.SaveSentRecord(storage.SentRecord{
+			storage.SaveSentRecord(templates.SentRecord{
 				Email:      emailAddr,
 				Subject:    selectedTemplate.Subject,
 				Date:       time.Now(),

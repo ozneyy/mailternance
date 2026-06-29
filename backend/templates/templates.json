@@ -1,0 +1,16 @@
+[
+  {
+    "id": "Default-HTML",
+    "name": "Default HTML",
+    "subject": "Test",
+    "body": "\u003chtml\u003e\u003cbody\u003eHello {{.LastName}} {{.Company}}\u003c/body\u003e\u003c/html\u003e ",
+    "type": "html"
+  },
+  {
+    "id": "Default-TXT",
+    "name": "Default TXT",
+    "subject": "Test",
+    "body": "Hello {{.FirstName}} {{.Company}} {{.Position}} {{.LastName}} {{.SenderName}} ",
+    "type": "txt"
+  }
+]

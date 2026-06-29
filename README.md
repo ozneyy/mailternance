@@ -79,17 +79,24 @@ mailternance/
 ├── Dockerfile              # Image optimisée multi-stage
 ├── .env.example            # Template de configuration
 ├── .env                    # ⚠️ Vos credentials (non commité)
-├── main.go                 # Code source Go
-├── template.html           # Template email HTML
-├── template.txt            # Template email texte
-├── templates.json          # Modèles d'email configurables
+├── main.go                 # Point d'entrée de l'application
+├── backend/                # Code source Go ( logique métier & API )
+│   ├── app/                # Initialisation et routage
+│   ├── config/             # Chargement de configuration
+│   ├── models/             # Modèles de données
+│   ├── storage/            # Gestion des données locales
+│   ├── mail/               # Envoi & Réception d'e-mails
+│   └── server/             # Serveur web HTTP
+├── web/                    # Ressources web du dashboard
+│   ├── templates/          # Templates HTML et texte
+│   ├── static/             # Assets statiques (CSS, JS...)
+│   └── attachments/        # ⚠️ Pièces jointes (CV, etc., non commité)
+├── logs/                   # Logs de l'application
 ├── recipients.csv          # ⚠️ Vos contacts (non commité)
-├── settings.json           # Paramètres runtime (sujet, liens...)
 ├── sent_history.json       # Historique d'envoi
 ├── replies.json            # Réponses reçues
-├── dashboard.html          # Template du dashboard
-└── web/
-    └── style.css           # Styles du dashboard
+├── settings.json           # Paramètres runtime (sujet, liens...)
+└── templates.json          # Modèles d'email configurables
 ```
 
 > Les fichiers marqués ⚠️ sont ignorés par Git. Vos données personnelles ne quittent jamais votre machine.
@@ -162,23 +169,23 @@ Les variables disponibles dans `template.html` :
 
 ```bash
 # En local
-go build -o mailsender && ./mailsender
+go build -o mailternance && ./mailternance
 
 # En Docker (one-shot)
-docker compose run --rm mailsender ./mailsender
+docker compose run --rm mailternance ./mailternance
 ```
 
 **Planification cron** (lundi & jeudi à 8h30) :
 
 ```cron
-30 8 * * 1,4 cd /chemin/vers/mailternance && docker compose run --rm mailsender ./mailsender >> cron.log 2>&1
+30 8 * * 1,4 cd /chemin/vers/mailternance && docker compose run --rm mailternance ./mailternance >> cron.log 2>&1
 ```
 
 ### Mode 2 : Dashboard web
 
 ```bash
 # En local
-go build -o mailsender && ./mailsender -web
+go build -o mailternance && ./mailternance -web
 
 # En Docker (défaut)
 docker compose up -d
@@ -211,17 +218,17 @@ Accès : **http://localhost:17890**
 ### Build
 
 ```bash
-go build -o mailsender
+go build -o mailternance
 ```
 
 ### Run
 
 ```bash
 # Mode envoi
-./mailsender
+./mailternance
 
 # Mode dashboard
-./mailsender -web
+./mailternance -web
 ```
 
 ---

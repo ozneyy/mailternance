@@ -1,4 +1,4 @@
-package storage
+package templates
 
 import (
 	"html/template"
@@ -123,4 +123,10 @@ type DashboardPageData struct {
 	TemplatesJSON   template.JS
 	AttachmentsJSON template.JS
 	EnvJSON         template.JS
+}
+
+// AutoSyncConfig représente la configuration de synchronisation automatique
+type AutoSyncConfig struct {
+	Enabled  bool `json:"enabled"`
+	Interval int  `json:"interval"` // en secondes
 }
