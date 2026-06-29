@@ -80,8 +80,7 @@
                 <!-- Top Header Bar -->
                 <el-header class="header-bar">
                     <h1 class="header-title">
-                        {[ activeTab === 'tracker' ? 'Suivi des Candidatures' : activeTab === 'recipients' ?
-                        'Destinataires (CSV)' : 'Paramètres' ]}
+                        {[ activeTab === 'tracker' ? 'Suivi des Candidatures' : activeTab === 'recipients' ? 'Destinataires (CSV)' : 'Paramètres' ]}
                     </h1>
                 </el-header>
 
@@ -175,15 +174,10 @@
                                     <template #default="scope">
                                         <div class="candidate-cell">
                                             <el-avatar :size="32" :type="scope.row.HasReply ? 'success' : 'info'">
-                                                {[ (scope.row.FirstName || scope.row.LastName) ? ((scope.row.FirstName ?
-                                                scope.row.FirstName[0] : '') + (scope.row.LastName ?
-                                                scope.row.LastName[0] : '')) : scope.row.Email.slice(0, 2).toUpperCase()
-                                                ]}
+                                                {[ (scope.row.FirstName || scope.row.LastName) ? ((scope.row.FirstName ? scope.row.FirstName[0] : '') + (scope.row.LastName ? scope.row.LastName[0] : '')) : scope.row.Email.slice(0, 2).toUpperCase() ]}
                                             </el-avatar>
                                             <div class="candidate-text">
-                                                <span class="candidate-name">{[ (scope.row.FirstName ||
-                                                    scope.row.LastName) ? (scope.row.FirstName + ' ' +
-                                                    scope.row.LastName).trim() : scope.row.Email ]}</span>
+                                                <span class="candidate-name">{[ (scope.row.FirstName || scope.row.LastName) ? (scope.row.FirstName + ' ' + scope.row.LastName).trim() : scope.row.Email ]}</span>
                                                 <span class="candidate-company">{[ scope.row.Company || '-' ]}</span>
                                             </div>
                                         </div>
@@ -195,8 +189,7 @@
                                 <el-table-column label="Statut" width="130">
                                     <template #default="scope">
                                         <el-tag :type="scope.row.HasReply ? 'success' : 'warning'" round effect="flat">
-                                            {[ scope.row.HasReply ? (scope.row.ReplyCount > 1 ? scope.row.ReplyCount + '
-                                            réponses' : 'Réponse reçue') : 'En attente' ]}
+                                            {[ scope.row.HasReply ? (scope.row.ReplyCount > 1 ? scope.row.ReplyCount + ' réponses' : 'Réponse reçue') : 'En attente' ]}
                                         </el-tag>
                                     </template>
                                 </el-table-column>
@@ -987,16 +980,11 @@
             <template #header>
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <el-avatar :size="36" style="background-color: var(--el-color-primary);">
-                        {[ (activeCandidate.FirstName || activeCandidate.LastName) ? ((activeCandidate.FirstName ?
-                        activeCandidate.FirstName[0] : '') + (activeCandidate.LastName ? activeCandidate.LastName[0] :
-                        '')) : (activeCandidate.Email ? activeCandidate.Email.slice(0, 2).toUpperCase() : '') ]}
+                        {[ (activeCandidate.FirstName || activeCandidate.LastName) ? ((activeCandidate.FirstName ? activeCandidate.FirstName[0] : '') + (activeCandidate.LastName ? activeCandidate.LastName[0] : '')) : (activeCandidate.Email ? activeCandidate.Email.slice(0, 2).toUpperCase() : '') ]}
                     </el-avatar>
                     <div>
-                        <h3 style="margin: 0; font-size: 16px; color: var(--el-text-color-primary);">{[
-                            (activeCandidate.FirstName || activeCandidate.LastName) ? (activeCandidate.FirstName + ' ' +
-                            activeCandidate.LastName).trim() : activeCandidate.Email ]}</h3>
-                        <span style="font-size: 12px; color: var(--el-text-color-secondary);">{[ activeCandidate.Email
-                            ]}</span>
+                        <h3 style="margin: 0; font-size: 16px; color: var(--el-text-color-primary);">{[ (activeCandidate.FirstName || activeCandidate.LastName) ? (activeCandidate.FirstName + ' ' + activeCandidate.LastName).trim() : activeCandidate.Email ]}</h3>
+                        <span style="font-size: 12px; color: var(--el-text-color-secondary);">{[ activeCandidate.Email ]}</span>
                     </div>
                 </div>
             </template>
@@ -1028,9 +1016,7 @@
                         :icon="PromotionIcon">
                         <el-card shadow="never">
                             <div class="timeline-card-content">
-                                <strong>Bonjour{[ (activeCandidate.FirstName || activeCandidate.LastName) ? ' ' +
-                                    (activeCandidate.FirstName + ' ' + activeCandidate.LastName).trim() + ',' : ''
-                                    ]}</strong><br><br>
+                                <strong>Bonjour{[ (activeCandidate.FirstName || activeCandidate.LastName) ? ' ' + (activeCandidate.FirstName + ' ' + activeCandidate.LastName).trim() + ',' : '' ]}</strong><br><br>
                                 Je me permets de vous adresser ma candidature pour l'offre d'alternance au sein de votre
                                 structure <strong>{[ activeCandidate.Company || 'entreprise' ]}</strong>.<br><br>
                                 Veuillez trouver mes documents de candidature joints à cet e-mail...
@@ -1063,11 +1049,7 @@
                             <div class="timeline-card-content reply-body-container">
                                 <div>{[ event.snippet ]}</div>
                                 <div v-if="event.body && event.body.length > 140" style="margin-top: 8px;">
-                                    <el-button size="small" type="primary" text
-                                        @click="toggleReplyBody(event.replyIndex)">
-                                        {[ expandedReplies[event.replyIndex] ? 'Masquer le message complet' : 'Voir le
-                                        message complet' ]}
-                                    </el-button>
+                                    <el-button size="small" type="primary" text @click="toggleReplyBody(event.replyIndex)">{[ expandedReplies[event.replyIndex] ? 'Masquer le message complet' : 'Voir le message complet' ]}</el-button>
                                     <div v-if="expandedReplies[event.replyIndex]"
                                         style="margin-top: 10px; padding: 12px; background: var(--el-bg-color-page); border-radius: 6px; max-height: 400px; overflow: auto;">
                                         <iframe :srcdoc="event.body"
