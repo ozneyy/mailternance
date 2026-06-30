@@ -191,6 +191,8 @@ func startAutoSend(intervalSecs int, templateID string, skipAlreadySent bool, sc
 		ticker := time.NewTicker(1 * time.Minute)
 		defer ticker.Stop()
 
+		var lastTriggeredMin string
+
 		if len(schedule) > 0 {
 			log.Printf("[INFO] Auto-send planifié démarré. Créneaux : %d, TemplateID : %s, SkipAlreadySent : %t", len(schedule), templateID, skipAlreadySent)
 		} else {
@@ -213,6 +215,12 @@ func startAutoSend(intervalSecs int, templateID string, skipAlreadySent bool, sc
 					continue
 				}
 
+				now := time.Now()
+				currentMinStr := now.Format("2006-01-02 15:04")
+				if currentMinStr == lastTriggeredMin {
+					continue
+				}
+
 				sendMutex.Lock()
 				inProg := sendInProgress
 				sendMutex.Unlock()
@@ -223,6 +231,8 @@ func startAutoSend(intervalSecs int, templateID string, skipAlreadySent bool, sc
 				}
 
 				log.Println("[INFO] Lancement de l'auto-send de campagne...")
+				lastTriggeredMin = currentMinStr
+
 				sendMutex.Lock()
 				sendInProgress = true
 				sendMutex.Unlock()
@@ -1196,6 +1206,12 @@ func runCampaignBackground(templateId string, onlyUnsent bool) {
 		recipients = unsentRecipients
 	}
 
+	replies, _ := storage.LoadReplies()
+	repliedEmails := make(map[string]bool)
+	for _, rep := range replies {
+		repliedEmails[strings.ToLower(strings.TrimSpace(rep.Email))] = true
+	}
+
 	if len(recipients) == 0 {
 		sendMutex.Lock()
 		sendLastLog = "Aucun nouveau destinataire à contacter dans le fichier CSV."
@@ -1224,6 +1240,14 @@ func runCampaignBackground(templateId string, onlyUnsent bool) {
 			} else {
 				sendLastLog += fmt.Sprintf("[%d/%d] Ligne %d sautée : format email invalide (%s)\n", i+1, sendTotal, i+2, emailAddr)
 			}
+			sendMutex.Unlock()
+			continue
+		}
+
+		if repliedEmails[strings.ToLower(strings.TrimSpace(emailAddr))] {
+			sendMutex.Lock()
+			sendCurrent = i + 1
+			sendLastLog += fmt.Sprintf("[%d/%d] Ligne %d sautée : le destinataire (%s) a déjà répondu\n", i+1, sendTotal, i+2, emailAddr)
 			sendMutex.Unlock()
 			continue
 		}

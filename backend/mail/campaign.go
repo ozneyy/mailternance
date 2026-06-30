@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/smtp"
+	"strings"
 	"time"
 
 	"github.com/ozneyy/mailternance/backend/config"
@@ -51,6 +52,12 @@ func RunEmailSender() {
 		log.Fatalf("[FATAL] Impossible de charger le fichier CSV (%s) : %v", cfg.CSVPath, err)
 	}
 
+	replies, _ := storage.LoadReplies()
+	repliedEmails := make(map[string]bool)
+	for _, rep := range replies {
+		repliedEmails[strings.ToLower(strings.TrimSpace(rep.Email))] = true
+	}
+
 	if len(recipients) == 0 {
 		log.Println("[INFO] Aucun destinataire à traiter. Fin du script.")
 		return
@@ -72,6 +79,11 @@ func RunEmailSender() {
 		if !IsValidEmail(emailAddr) {
 			log.Printf("[WARNING] Ligne %d sautée : format email invalide (%s)", i+2, emailAddr)
 			failureCount++
+			continue
+		}
+
+		if repliedEmails[strings.ToLower(strings.TrimSpace(emailAddr))] {
+			log.Printf("[INFO] Ligne %d sautée : le destinataire (%s) a déjà répondu", i+2, emailAddr)
 			continue
 		}
 
